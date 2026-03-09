@@ -906,15 +906,15 @@ function CommanderPageContent() {
 
       <SiteHeader currentPage="commander" />
 
-      <main className="mx-auto w-[min(1200px,92%)] pt-10">
+      <main className="mx-auto w-[min(1200px,94%)] pt-6 sm:w-[min(1200px,92%)] sm:pt-10">
         <section className="animate-reveal is-visible mb-8">
           <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
             Finaliser ma commande
           </p>
-          <h1 className="text-4xl font-black tracking-tight text-[#4f3340] sm:text-6xl">
+          <h1 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-6xl">
             Compose ton panier gourmand
           </h1>
-          <p className="mt-3 max-w-2xl text-lg text-[#775766]">
+          <p className="mt-3 max-w-2xl text-base text-[#775766] sm:text-lg">
             Ajoute tes gateaux et cookies favoris, ajuste les quantites puis
             envoie ta demande de commande.
           </p>
@@ -1021,7 +1021,7 @@ function CommanderPageContent() {
             </div>
           </section>
 
-          <aside id="panier" className="glass h-fit rounded-3xl p-5">
+          <aside id="panier" className="glass h-fit rounded-3xl p-4 sm:p-5">
             <h3 className="text-2xl font-black text-[#4f3340]">Mon panier</h3>
             {cartItems.length === 0 ? (
               <p className="mt-3 text-sm text-[#7a5d6a]">

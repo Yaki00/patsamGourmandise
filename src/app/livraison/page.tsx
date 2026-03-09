@@ -121,12 +121,12 @@ export default function LivraisonPage() {
   return (
     <div className="relative min-h-screen overflow-x-clip pb-10">
       <SiteHeader currentPage="livraison" />
-      <main className="mx-auto w-[min(1000px,92%)] py-8 sm:py-10">
-        <div className="glass rounded-3xl p-6 sm:p-8">
+      <main className="mx-auto w-[min(1000px,94%)] py-6 sm:w-[min(1000px,92%)] sm:py-10">
+        <div className="glass rounded-3xl p-4 sm:p-8">
         <p className="mb-2 text-xs font-extrabold tracking-[0.16em] text-[#966a7d] uppercase">
           Livraison
         </p>
-        <h1 className="text-4xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
+        <h1 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
           Houilles (78) et ses alentours
         </h1>
         <p className="mt-3 max-w-3xl text-[#715260]">
@@ -146,12 +146,12 @@ export default function LivraisonPage() {
               value={cityInput}
               onChange={(event) => setCityInput(event.target.value)}
               placeholder="Ex: Houilles, Nanterre, Versailles..."
-              className="min-w-[230px] flex-1 rounded-xl border border-white/80 bg-white px-3 py-2 text-sm text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
+              className="w-full min-w-0 flex-1 rounded-xl border border-white/80 bg-white px-3 py-2 text-sm text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0] sm:min-w-[230px]"
             />
             <button
               type="submit"
               disabled={isSearching}
-              className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-4 py-2 text-sm font-bold text-white shadow-[0_10px_25px_rgba(255,114,182,.35)] disabled:opacity-60"
+              className="w-full rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-4 py-2 text-sm font-bold text-white shadow-[0_10px_25px_rgba(255,114,182,.35)] disabled:opacity-60 sm:w-auto"
             >
               {isSearching ? "Recherche..." : "Verifier"}
             </button>
@@ -206,20 +206,20 @@ export default function LivraisonPage() {
           Au-dela de 50 km : livraison non disponible.
         </p>
 
-        <div className="mt-7 flex flex-wrap gap-3">
+        <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap">
           <Link
             href="/commander"
-            className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)]"
+            className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 text-center font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)]"
           >
             Commander maintenant
           </Link>
           <Link
             href="/livraison/planifier"
-            className="rounded-full bg-white px-6 py-3 text-sm font-bold text-[#6d4d5a] shadow-[0_10px_25px_rgba(255,114,182,.15)]"
+            className="rounded-full bg-white px-6 py-3 text-center text-sm font-bold text-[#6d4d5a] shadow-[0_10px_25px_rgba(255,114,182,.15)]"
           >
             Choisir jour et creneau
           </Link>
-          <Link href="/contact" className="glass rounded-full px-6 py-3 font-bold text-[#6d4d5a]">
+          <Link href="/contact" className="glass rounded-full px-6 py-3 text-center font-bold text-[#6d4d5a]">
             Poser une question
           </Link>
         </div>

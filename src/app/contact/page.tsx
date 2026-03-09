@@ -5,12 +5,12 @@ export default function ContactPage() {
   return (
     <div className="relative min-h-screen overflow-x-clip pb-10">
       <SiteHeader currentPage="contact" />
-      <main className="mx-auto w-[min(1000px,92%)] py-8 sm:py-10">
-        <div className="glass rounded-3xl p-6 sm:p-8">
+      <main className="mx-auto w-[min(1000px,94%)] py-6 sm:w-[min(1000px,92%)] sm:py-10">
+        <div className="glass rounded-3xl p-4 sm:p-8">
         <p className="mb-2 text-xs font-extrabold tracking-[0.16em] text-[#966a7d] uppercase">
           Contact
         </p>
-        <h1 className="text-4xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
+        <h1 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
           Parlons de ta commande
         </h1>
         <p className="mt-3 max-w-2xl text-[#715260]">
@@ -60,7 +60,7 @@ export default function ContactPage() {
           />
           <button
             type="button"
-            className="w-fit rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)]"
+            className="w-full rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] sm:w-fit"
           >
             Envoyer ma demande
           </button>

@@ -162,16 +162,16 @@ export default function Home() {
 
       <SiteHeader currentPage="home" />
 
-      <main className="mx-auto w-[min(1200px,92%)]">
+      <main className="mx-auto w-[min(1200px,94%)] sm:w-[min(1200px,92%)]">
         <section
           data-hero
-          className="grid min-h-[88vh] items-center gap-10 py-14 lg:grid-cols-[1fr_1.05fr]"
+          className="grid min-h-[74vh] items-center gap-6 py-8 sm:gap-10 sm:py-14 lg:min-h-[88vh] lg:grid-cols-[1fr_1.05fr]"
         >
           <div className="animate-reveal">
             <p className="mb-3 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
               Boutique de patisserie en ligne
             </p>
-            <h1 className="text-5xl leading-[0.95] font-black tracking-tight text-[#4f3340] sm:text-6xl lg:text-7xl">
+            <h1 className="text-4xl leading-[0.96] font-black tracking-tight text-[#4f3340] sm:text-6xl lg:text-7xl">
               Ultra
               <span className="bg-gradient-to-r from-[#ff72b6] to-[#ff9d74] bg-clip-text text-transparent">
                 {" "}
@@ -182,7 +182,7 @@ export default function Home() {
               <br />
               irresistible.
             </h1>
-            <p className="mt-4 max-w-xl text-lg text-[#775766]">
+            <p className="mt-4 max-w-xl text-base text-[#775766] sm:text-lg">
               Cookies, trompe-l&apos;oeil et creations premium avec une
               experience tres visuelle, animee et memorable.
             </p>
@@ -198,23 +198,23 @@ export default function Home() {
                 Personnalisation complete
               </span>
             </div>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
               <Link
                 href="/commander"
-                className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] transition hover:-translate-y-0.5"
+                className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 text-center font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] transition hover:-translate-y-0.5"
               >
                 Commander maintenant
               </Link>
               <a
                 href="#best"
-                className="glass rounded-full px-6 py-3 font-bold text-[#6d4d5a]"
+                className="glass rounded-full px-6 py-3 text-center font-bold text-[#6d4d5a]"
               >
                 Top ventes
               </a>
             </div>
           </div>
 
-          <div className="hero-card glass relative min-h-[34rem] overflow-hidden rounded-[2rem]">
+          <div className="hero-card glass relative min-h-[22rem] overflow-hidden rounded-[1.5rem] sm:min-h-[30rem] sm:rounded-[2rem] lg:min-h-[34rem]">
             <Image
               src={catalog[6]?.image ?? catalog[0].image}
               alt="Layer cake signature"
@@ -279,12 +279,12 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="collections" className="py-10">
+        <section id="collections" className="py-8 sm:py-10">
           <div className="animate-reveal mb-7">
             <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
               Collections
             </p>
-            <h2 className="text-4xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
+            <h2 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
               Gateaux et cookies en vitrine
             </h2>
           </div>
@@ -303,7 +303,7 @@ export default function Home() {
                     : ""
                 } cursor-pointer focus-visible:ring-2 focus-visible:ring-[#ff8fc9] focus-visible:outline-none`}
               >
-                <div className="relative mb-4 h-56 overflow-hidden rounded-2xl">
+                <div className="relative mb-4 h-52 overflow-hidden rounded-2xl sm:h-56">
                   <Image
                     src={item.image}
                     alt={item.name}
@@ -334,8 +334,8 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="best" className="grid items-stretch gap-5 py-10 lg:grid-cols-[1.08fr_.92fr]">
-          <div className="animate-reveal relative min-h-[26rem] overflow-hidden rounded-[1.8rem]">
+        <section id="best" className="grid items-stretch gap-5 py-8 sm:py-10 lg:grid-cols-[1.08fr_.92fr]">
+          <div className="animate-reveal relative min-h-[20rem] overflow-hidden rounded-[1.4rem] sm:min-h-[26rem] sm:rounded-[1.8rem]">
             <Image
               src={catalog[6]?.image ?? catalog[0].image}
               alt="Selection premium Patsam Gourmandise"
@@ -343,7 +343,7 @@ export default function Home() {
               className="object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#2a1621]/55 via-transparent to-transparent" />
-            <p className="absolute left-6 bottom-20 text-3xl leading-none font-black text-white sm:text-4xl">
+            <p className="absolute left-4 bottom-16 text-2xl leading-none font-black text-white sm:left-6 sm:bottom-20 sm:text-4xl">
               Saveurs intenses
               <br />
               textures parfaites
@@ -358,11 +358,11 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="animate-reveal glass rounded-[1.8rem] p-6">
+          <div className="animate-reveal glass rounded-[1.4rem] p-4 sm:rounded-[1.8rem] sm:p-6">
             <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
               Best-sellers
             </p>
-            <h2 className="text-4xl font-black tracking-tight text-[#4f3340]">
+            <h2 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-4xl">
               Les favoris qui partent en premier
             </h2>
             <p className="mt-2 text-[#735665]">
@@ -392,16 +392,16 @@ export default function Home() {
                 </article>
               ))}
             </div>
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className="mt-6 grid gap-2 sm:flex sm:flex-wrap">
               <Link
                 href="/commander"
-                className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] transition hover:-translate-y-0.5"
+                className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 text-center font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] transition hover:-translate-y-0.5"
               >
                 Commander ces best-sellers
               </Link>
               <a
                 href="#collections"
-                className="glass rounded-full px-5 py-3 text-sm font-bold text-[#6d4d5a]"
+                className="glass rounded-full px-5 py-3 text-center text-sm font-bold text-[#6d4d5a]"
               >
                 Voir tout le catalogue
               </a>
@@ -409,8 +409,8 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="animate-reveal py-10">
-          <div className="mb-5 flex items-end justify-between gap-4">
+        <section className="animate-reveal py-8 sm:py-10">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
                 Feed gourmand
@@ -444,13 +444,13 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="avis" className="py-10">
+        <section id="avis" className="py-8 sm:py-10">
           <div className="animate-reveal mb-7 flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
                 Avis clients
               </p>
-              <h2 className="text-4xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
+              <h2 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
                 Ils ont deja commande
               </h2>
             </div>
@@ -483,14 +483,14 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="histoire" className="animate-reveal py-16 text-center">
+        <section id="histoire" className="animate-reveal py-12 text-center sm:py-16">
           <p className="mb-3 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
             Notre histoire
           </p>
-          <h2 className="mx-auto max-w-4xl text-4xl leading-tight font-black tracking-tight text-[#4f3340] sm:text-5xl">
+          <h2 className="mx-auto max-w-4xl text-3xl leading-tight font-black tracking-tight text-[#4f3340] sm:text-5xl">
             Patsam Gourmandise transforme chaque commande en experience waouh.
           </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-lg text-[#785a68]">
+          <p className="mx-auto mt-5 max-w-2xl text-base text-[#785a68] sm:text-lg">
             Atelier artisanal, direction artistique forte et exigence premium.
             Un univers de marque fort, bien au-dela d&apos;une simple page catalogue.
           </p>

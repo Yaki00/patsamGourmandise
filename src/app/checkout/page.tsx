@@ -43,13 +43,13 @@ export default function CheckoutPage() {
   };
 
   return (
-    <main className="mx-auto w-[min(1100px,92%)] py-6 sm:py-14">
+    <main className="mx-auto w-[min(1100px,94%)] py-4 sm:w-[min(1100px,92%)] sm:py-14">
       <SiteHeader currentPage="checkout" />
-      <section className="glass rounded-3xl p-6 sm:p-8">
+      <section className="glass rounded-3xl p-4 sm:p-8">
         <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
           Checkout
         </p>
-        <h1 className="text-4xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
+        <h1 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
           Finaliser la commande
         </h1>
         <p className="mt-2 text-[#735665]">
@@ -111,7 +111,7 @@ export default function CheckoutPage() {
               </select>
               <Link
                 href="/livraison/planifier"
-                className="inline-flex w-fit rounded-full bg-white px-4 py-2 text-sm font-bold text-[#6d4d5a] shadow-[0_10px_24px_rgba(255,114,182,.16)]"
+                className="inline-flex w-full justify-center rounded-full bg-white px-4 py-2 text-sm font-bold text-[#6d4d5a] shadow-[0_10px_24px_rgba(255,114,182,.16)] sm:w-fit"
               >
                 Choisir mon jour et mon creneau
               </Link>
@@ -126,7 +126,7 @@ export default function CheckoutPage() {
               <button
                 type="submit"
                 disabled={lines.length === 0}
-                className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               >
                 Valider la commande
               </button>

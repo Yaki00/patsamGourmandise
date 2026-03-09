@@ -31,12 +31,12 @@ export default function PlanifierLivraisonPage() {
   return (
     <div className="relative min-h-screen overflow-x-clip pb-10">
       <SiteHeader currentPage="livraison" />
-      <main className="mx-auto w-[min(1100px,92%)] py-8 sm:py-10">
-        <section className="glass rounded-3xl p-6 sm:p-8">
+      <main className="mx-auto w-[min(1100px,94%)] py-6 sm:w-[min(1100px,92%)] sm:py-10">
+        <section className="glass rounded-3xl p-4 sm:p-8">
           <p className="mb-2 text-xs font-extrabold tracking-[0.16em] text-[#966a7d] uppercase">
             Livraison
           </p>
-          <h1 className="text-4xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
+          <h1 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
             Choisir le jour et le creneau
           </h1>
           <p className="mt-3 max-w-3xl text-[#715260]">
@@ -155,7 +155,7 @@ export default function PlanifierLivraisonPage() {
 
               <button
                 type="submit"
-                className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] transition hover:-translate-y-0.5"
+                className="w-full rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] transition hover:-translate-y-0.5 sm:w-auto"
               >
                 Enregistrer mes preferences
               </button>
@@ -194,14 +194,14 @@ export default function PlanifierLivraisonPage() {
                 </p>
               )}
 
-              <div className="mt-5 flex flex-wrap gap-2">
+              <div className="mt-5 grid gap-2 sm:flex sm:flex-wrap">
                 <Link
                   href="/checkout"
-                  className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-5 py-2.5 text-sm font-bold text-white"
+                  className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-5 py-2.5 text-center text-sm font-bold text-white"
                 >
                   Aller au checkout
                 </Link>
-                <Link href="/livraison" className="glass rounded-full px-5 py-2.5 text-sm font-bold text-[#6d4d5a]">
+                <Link href="/livraison" className="glass rounded-full px-5 py-2.5 text-center text-sm font-bold text-[#6d4d5a]">
                   Retour livraison
                 </Link>
               </div>
