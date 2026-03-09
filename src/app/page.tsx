@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { KeyboardEvent, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { formatPrice, productCatalog } from "@/data/products";
+import { formatPrice, Product, productCatalog } from "@/data/products";
 import { SiteHeader } from "@/components/site-header";
 
 const catalog = productCatalog;
@@ -11,8 +11,41 @@ const carouselProducts = [...catalog, ...catalog];
 const bestSellerProducts = [catalog[0], catalog[6], catalog[1]].filter(
   (item): item is (typeof catalog)[number] => Boolean(item)
 );
+const reviews = [
+  {
+    id: "avis-1",
+    name: "Ines B.",
+    text: "Layer cake incroyable, visuel magnifique et gout ultra frais. Toute la famille a valide.",
+    rating: 5,
+    city: "Houilles",
+  },
+  {
+    id: "avis-2",
+    name: "Sabrina M.",
+    text: "Commande simple, livraison rapide et produits conformes aux photos. Je recommande a 100%.",
+    rating: 5,
+    city: "Nanterre",
+  },
+  {
+    id: "avis-3",
+    name: "Yassine K.",
+    text: "Les trompe-l'oeil sont bluffants. Service tres pro et super communication avant la livraison.",
+    rating: 5,
+    city: "Bezons",
+  },
+];
 
 export default function Home() {
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+
+  const deliveryLabel = useMemo(() => {
+    if (!selectedProduct) return "";
+    return selectedProduct.category === "Trompe-l'oeil"
+      ? "Delai de livraison : J+1"
+      : "Delai de livraison : Jour meme";
+  }, [selectedProduct]);
+
   useEffect(() => {
     const layerItems = Array.from(
       document.querySelectorAll<HTMLElement>("[data-parallax-layer]")
@@ -94,6 +127,32 @@ export default function Home() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!isProductModalOpen) return;
+    const onEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsProductModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onEscape);
+    return () => window.removeEventListener("keydown", onEscape);
+  }, [isProductModalOpen]);
+
+  const openProductModal = (product: Product) => {
+    setSelectedProduct(product);
+    setIsProductModalOpen(true);
+  };
+
+  const onCardKeyDown = (
+    event: KeyboardEvent<HTMLElement>,
+    product: Product
+  ) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openProductModal(product);
+    }
+  };
 
   return (
     <div className="relative min-h-screen overflow-x-clip pb-10">
@@ -226,7 +285,7 @@ export default function Home() {
               Collections
             </p>
             <h2 className="text-4xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
-              De vrais gateaux et cookies en vitrine
+              Gateaux et cookies en vitrine
             </h2>
           </div>
 
@@ -234,11 +293,15 @@ export default function Home() {
             {catalog.map((item) => (
               <article
                 key={item.name}
+                role="button"
+                tabIndex={0}
+                onClick={() => openProductModal(item)}
+                onKeyDown={(event) => onCardKeyDown(event, item)}
                 className={`animate-reveal glass group rounded-3xl p-4 shadow-[0_18px_45px_rgba(248,154,194,.14)] transition hover:-translate-y-1 ${
                   item.category === "Box"
                     ? "ring-1 ring-[#ff8fc9]/55 shadow-[0_20px_50px_rgba(255,114,182,.26)]"
                     : ""
-                }`}
+                } cursor-pointer focus-visible:ring-2 focus-visible:ring-[#ff8fc9] focus-visible:outline-none`}
               >
                 <div className="relative mb-4 h-56 overflow-hidden rounded-2xl">
                   <Image
@@ -259,6 +322,13 @@ export default function Home() {
                   {item.name}
                 </h3>
                 <p className="mt-2 text-[#765968]">{item.description}</p>
+                <Link
+                  href={`/commander?product=${encodeURIComponent(item.id)}`}
+                  onClick={(event) => event.stopPropagation()}
+                  className="mt-4 inline-flex rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-4 py-2 text-sm font-bold text-white shadow-[0_10px_25px_rgba(255,114,182,.35)]"
+                >
+                  Commander
+                </Link>
               </article>
             ))}
           </div>
@@ -346,7 +416,7 @@ export default function Home() {
                 Feed gourmand
               </p>
               <h2 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-4xl">
-                Nos vrais produits
+                Nos creations gourmandes
               </h2>
             </div>
             <a href="#collections" className="text-sm font-bold text-[#f24ea5]">
@@ -374,6 +444,45 @@ export default function Home() {
           </div>
         </section>
 
+        <section id="avis" className="py-10">
+          <div className="animate-reveal mb-7 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
+                Avis clients
+              </p>
+              <h2 className="text-4xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
+                Ils ont deja commande
+              </h2>
+            </div>
+            <div className="rounded-2xl bg-white/75 px-4 py-3 text-sm text-[#6c4b59] shadow-[0_10px_24px_rgba(245,141,189,.12)]">
+              <p className="font-black text-[#4f3340]">4.9 / 5</p>
+              <p className="font-semibold">Base sur les retours clients</p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {reviews.map((review) => (
+              <article
+                key={review.id}
+                className="animate-reveal glass rounded-3xl p-5 shadow-[0_18px_45px_rgba(248,154,194,.14)]"
+              >
+                <p className="text-base leading-relaxed text-[#5e434f]">
+                  &ldquo;{review.text}&rdquo;
+                </p>
+                <div className="mt-4 flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-extrabold text-[#553a46]">{review.name}</p>
+                    <p className="text-xs font-semibold text-[#7b5d6c]">{review.city}</p>
+                  </div>
+                  <p className="rounded-full bg-[#fff0f7] px-3 py-1 text-xs font-black text-[#a34d74]">
+                    {"★".repeat(review.rating)}
+                  </p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
         <section id="histoire" className="animate-reveal py-16 text-center">
           <p className="mb-3 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
             Notre histoire
@@ -383,7 +492,7 @@ export default function Home() {
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-[#785a68]">
             Atelier artisanal, direction artistique forte et exigence premium.
-            Tu as un vrai univers de marque, pas juste une page catalogue.
+            Un univers de marque fort, bien au-dela d&apos;une simple page catalogue.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -401,6 +510,62 @@ export default function Home() {
           </div>
         </section>
       </main>
+
+      {isProductModalOpen && selectedProduct && (
+        <div
+          className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/45 p-2 sm:p-4"
+          onClick={() => setIsProductModalOpen(false)}
+        >
+          <div
+            className="glass w-full max-w-2xl rounded-[1.4rem] bg-white/88 p-5 sm:p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-4 flex items-start justify-between gap-2">
+              <div>
+                <p className="text-xs font-extrabold tracking-[0.16em] text-[#966a7d] uppercase">
+                  Details produit
+                </p>
+                <h2 className="text-3xl font-black text-[#4f3340]">
+                  {selectedProduct.name}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsProductModalOpen(false)}
+                className="rounded-full bg-white px-3 py-1 text-sm font-bold text-[#734d5f]"
+              >
+                Fermer
+              </button>
+            </div>
+
+            <p className="text-sm text-[#6f515f]">{selectedProduct.description}</p>
+
+            <div className="mt-4 rounded-2xl bg-white/70 p-4 text-sm text-[#654755]">
+              <p className="font-semibold">{deliveryLabel}</p>
+              <p className="mt-2 font-bold text-[#725161]">Allergenes</p>
+              <p>{selectedProduct.allergens.join(", ")}</p>
+              <p className="mt-2 font-bold text-[#725161]">Gouts disponibles</p>
+              <p>{selectedProduct.flavors.join(", ")}</p>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link
+                href={`/commander?product=${encodeURIComponent(selectedProduct.id)}`}
+                className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-5 py-2.5 text-sm font-bold text-white shadow-[0_10px_25px_rgba(255,114,182,.35)]"
+              >
+                Commander
+              </Link>
+              <button
+                type="button"
+                onClick={() => setIsProductModalOpen(false)}
+                className="glass rounded-full px-5 py-2.5 text-sm font-bold text-[#6d4d5a]"
+              >
+                Retour
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

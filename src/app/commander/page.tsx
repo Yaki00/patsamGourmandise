@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { CSSProperties, FormEvent, useEffect, useMemo, useState } from "react";
+import { CSSProperties, FormEvent, Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Product, formatPrice, productCatalog } from "@/data/products";
 import { useCart } from "@/context/cart-context";
 import { SiteHeader } from "@/components/site-header";
@@ -713,13 +714,24 @@ function FormulaBox3DPreview({ rows }: { rows: FormulaRow[] }) {
   );
 }
 
-export default function CommanderPage() {
+function CommanderPageContent() {
+  const searchParams = useSearchParams();
+  const requestedProductId = searchParams.get("product");
+  const requestedProductFromUrl = requestedProductId
+    ? productCatalog.find((item) => item.id === requestedProductId) ?? null
+    : null;
   const { entries, addItem, setItemQty, subtotal } = useCart();
-  const [selectedCategory, setSelectedCategory] = useState<string>("Toutes");
-  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    requestedProductFromUrl?.category ?? "Toutes"
+  );
+  const [modalOpen, setModalOpen] = useState(Boolean(requestedProductFromUrl));
   const [formulaModalOpen, setFormulaModalOpen] = useState(false);
-  const [modalProductId, setModalProductId] = useState<string | null>(null);
-  const [modalFlavor, setModalFlavor] = useState<string>("");
+  const [modalProductId, setModalProductId] = useState<string | null>(
+    requestedProductFromUrl?.id ?? null
+  );
+  const [modalFlavor, setModalFlavor] = useState<string>(
+    requestedProductFromUrl?.flavors[0] ?? ""
+  );
   const [modalQty, setModalQty] = useState<number>(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formulaRows, setFormulaRows] = useState<FormulaRow[]>([
@@ -1362,5 +1374,13 @@ export default function CommanderPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CommanderPage() {
+  return (
+    <Suspense fallback={null}>
+      <CommanderPageContent />
+    </Suspense>
   );
 }
