@@ -1,8 +1,17 @@
 "use client";
 
-import { CSSProperties, useEffect, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import {
+  AnimatePresence,
+  LayoutGroup,
+  motion,
+  MotionValue,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "motion/react";
 import {
   formatPrice,
   getDeliveryDelay,
@@ -10,19 +19,34 @@ import {
   productCatalog,
 } from "@/data/products";
 import { SiteHeader } from "@/components/site-header";
+import {
+  CircularText,
+  CountUp,
+  easeOut,
+  Magnetic,
+  Marquee,
+  Reveal,
+  SplitWords,
+  SprinkleField,
+  TiltCard,
+} from "@/components/fx";
+import { useCart } from "@/context/cart-context";
+import { flyToCart, sprinkleBurst } from "@/lib/sprinkles";
 
 const catalog = productCatalog;
-const heroProduct =
-  catalog.find((item) => item.id === "layer-cake-signature") ?? catalog[0];
-const heroSideProduct =
-  catalog.find((item) => item.id === "cookie-triple-choco") ?? catalog[0];
+const byId = (id: string) =>
+  catalog.find((item) => item.id === id) ?? catalog[0];
+const heroSlides = [
+  "layer-cake-signature",
+  "cookie-triple-choco",
+  "trompe-loeil-framboise",
+  "cheesecake-mango-pop",
+].map(byId);
 const bestSellerProducts = [
   "cookie-triple-choco",
   "layer-cake-signature",
   "trompe-loeil-framboise",
-]
-  .map((id) => catalog.find((item) => item.id === id))
-  .filter((item): item is Product => Boolean(item));
+].map(byId);
 // Mis en avant sur 2 colonnes quand tout le catalogue est affiché.
 const featuredIds = ["trompe-loeil-framboise", "layer-cake-signature"];
 const categories = [
@@ -55,183 +79,368 @@ const steps = [
   {
     title: "Choisissez vos douceurs",
     text: "Parfums, quantités, box à composer : tout se règle depuis la page Commander.",
+    tone: "bg-mangue text-ganache",
   },
   {
     title: "Réservez un créneau",
     text: "Livraison ou retrait à l'atelier, du matin au soir. Les trompe-l'œil se réservent la veille.",
+    tone: "bg-pistache text-pistache-deep",
   },
   {
     title: "On sonne chez vous",
     text: "Préparé le jour même, livré frais dans un rayon de 50 km autour de Houilles.",
+    tone: "bg-framboise text-white",
   },
 ];
+
+const ribbonA = [
+  "Livraison offerte dès 15 €",
+  "Fait maison à Houilles",
+  "Livré le jour même",
+  "Retrait à l'atelier",
+];
+const ribbonB = [
+  "Cookies XXL",
+  "Trompe-l'œil à J+1",
+  "Layer cakes",
+  "Box à composer",
+  "Sur mesure",
+];
+
+const storyText =
+  "Un anniversaire, un baptême, un mariage ? On imagine le gâteau avec vous : thème, couleurs, parfums, nombre de parts. Vous donnez la date, on s'occupe du reste.";
 
 const bandStyle = (color: string) => ({ "--band": color }) as CSSProperties;
 
 export default function Home() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [category, setCategory] = useState("Tout");
-
-  const visibleProducts =
-    category === "Tout"
-      ? catalog
-      : catalog.filter((item) => item.category === category);
 
   useEffect(() => {
     if (!selectedProduct) return;
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setSelectedProduct(null);
     };
+    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onEscape);
-    return () => window.removeEventListener("keydown", onEscape);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onEscape);
+    };
   }, [selectedProduct]);
 
   return (
     <div className="relative min-h-screen overflow-x-clip">
       <SiteHeader currentPage="home" />
 
-      <main>
-        {/* Hero */}
-        <section className="mx-auto grid w-[min(1200px,92%)] items-center gap-12 pt-12 pb-20 sm:pt-16 lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:pt-20 lg:pb-28">
-          <div className="hero-in">
-            <p className="note">
-              <span className="note-dot" aria-hidden="true">
-                ✦
-              </span>
-              Pâtisserie maison à Houilles (78)
-            </p>
-            <h1 className="display-xl mt-6">
-              Gourmand jusqu&apos;à la dernière miette.
-            </h1>
-            <p className="lede mt-6">
-              Cookies XXL, trompe-l&apos;œil bluffants et layer cakes à étages,
-              préparés à l&apos;atelier et livrés chez vous le jour même.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/commander" className="btn btn-primary">
-                Commander
-              </Link>
-              <a href="#vitrine" className="btn btn-outline">
-                Voir la vitrine
-              </a>
-            </div>
-          </div>
+      <LayoutGroup>
+        <main>
+          <Hero />
+          <RibbonCross />
+          <Vitrine onOpen={setSelectedProduct} />
+          <BestSellers />
+          <Steps />
+          <Reviews />
+          <Story />
+        </main>
 
-          <div className="relative mx-auto w-full max-w-[34rem]">
-            <div className="hero-photo-in scallop-frame relative aspect-square bg-framboise-soft">
-              <Image
-                src={heroProduct.image}
-                alt={`${heroProduct.name}, gâteau à étages garni de fruits rouges`}
-                fill
-                priority
-                sizes="(min-width: 1024px) 34rem, 92vw"
-                className="object-cover"
-              />
-            </div>
+        <AnimatePresence>
+          {selectedProduct && (
+            <ProductDialog
+              product={selectedProduct}
+              onClose={() => setSelectedProduct(null)}
+            />
+          )}
+        </AnimatePresence>
+      </LayoutGroup>
+    </div>
+  );
+}
 
-            <div className="hero-photo-in scallop-frame absolute -bottom-6 -left-4 aspect-square w-[34%] bg-pistache p-[7%] sm:-left-10">
-              <div className="scallop-frame relative h-full w-full">
+/* ---------------- Hero ---------------- */
+
+function Hero() {
+  const reduce = useReducedMotion();
+  const [slide, setSlide] = useState(0);
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"],
+  });
+  const photoY = useTransform(scrollYProgress, [0, 1], [0, 120]);
+  const photoRotate = useTransform(scrollYProgress, [0, 1], [0, -12]);
+  const textY = useTransform(scrollYProgress, [0, 1], [0, -60]);
+
+  useEffect(() => {
+    if (reduce) return;
+    const timer = window.setInterval(
+      () => setSlide((value) => (value + 1) % heroSlides.length),
+      4200,
+    );
+    return () => window.clearInterval(timer);
+  }, [reduce, slide]);
+
+  const product = heroSlides[slide];
+
+  return (
+    <section
+      ref={ref}
+      className="relative mx-auto grid w-[min(1200px,92%)] items-center gap-14 pt-12 pb-24 sm:pt-16 lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:pt-20 lg:pb-32"
+    >
+      <SprinkleField className="-z-10 hidden sm:block lg:left-[48%]" />
+
+      <motion.div style={reduce ? undefined : { y: textY }}>
+        <motion.p
+          className="note"
+          initial={reduce ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: easeOut }}
+        >
+          <span className="note-dot" aria-hidden="true">
+            ✦
+          </span>
+          Pâtisserie maison à Houilles (78)
+        </motion.p>
+        <SplitWords
+          text="Gourmand jusqu'à la dernière miette."
+          className="display-xl mt-6"
+          delay={0.15}
+        />
+        <motion.p
+          className="lede mt-6"
+          initial={reduce ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.7, ease: easeOut }}
+        >
+          Cookies XXL, trompe-l&apos;œil bluffants et layer cakes à étages,
+          préparés à l&apos;atelier et livrés chez vous le jour même.
+        </motion.p>
+        <motion.div
+          className="mt-8 flex flex-wrap gap-3"
+          initial={reduce ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.85, ease: easeOut }}
+        >
+          <Magnetic>
+            <Link href="/commander" className="btn btn-primary shine px-7">
+              Commander
+            </Link>
+          </Magnetic>
+          <Magnetic>
+            <a href="#vitrine" className="btn btn-outline px-7">
+              Voir la vitrine
+            </a>
+          </Magnetic>
+        </motion.div>
+      </motion.div>
+
+      <motion.div
+        className="relative mx-auto w-full max-w-[34rem]"
+        style={reduce ? undefined : { y: photoY, rotate: photoRotate }}
+        initial={reduce ? false : { opacity: 0, scale: 0.85, rotate: -10 }}
+        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 90, damping: 16, delay: 0.2 }}
+      >
+        {/* Plateau tournant : le feston tourne, la photo reste droite. */}
+        <div className="turntable scallop-frame relative aspect-square bg-framboise-soft">
+          <div className="turntable-counter absolute inset-0">
+            <AnimatePresence initial={false}>
+              <motion.div
+                key={product.id}
+                className="absolute inset-0"
+                initial={{ opacity: 0, scale: 1.15 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 1, ease: easeOut }}
+              >
                 <Image
-                  src={heroSideProduct.image}
-                  alt={heroSideProduct.name}
+                  src={product.image}
+                  alt={product.name}
                   fill
-                  sizes="12rem"
+                  priority={slide === 0}
+                  sizes="(min-width: 1024px) 34rem, 92vw"
                   className="object-cover"
                 />
-              </div>
-            </div>
-
-            <p className="sticker sticker-in absolute -top-2 right-0 h-28 w-28 rotate-[10deg] p-3 text-[0.95rem] sm:right-2 sm:h-32 sm:w-32 sm:text-base">
-              Livré le jour même
-            </p>
-
-            <div className="absolute right-[6%] bottom-[12%] rotate-[-4deg]">
-              <p className="price-tag">
-                <span className="font-semibold">{heroProduct.name}</span>
-                <span className="text-framboise">
-                  {formatPrice(heroProduct.price)}
-                </span>
-              </p>
-            </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
-        </section>
+        </div>
 
-        {/* Bande infos */}
-        <section
-          className="band band-scallop-top band-scallop-bottom text-white"
-          style={bandStyle("var(--framboise)")}
-          aria-label="Infos livraison"
+        <CircularText
+          text="LIVRÉ LE JOUR MÊME ✦ FAIT MAISON ✦ "
+          className="bob absolute -top-4 -right-2 h-32 w-32 rounded-full bg-mangue text-ganache shadow-[0_14px_30px_-12px_rgba(59,29,23,.5)] sm:h-36 sm:w-36"
         >
-          <ul className="mx-auto grid w-[min(1200px,92%)] gap-4 py-7 text-center sm:grid-cols-3 sm:gap-6">
-            <li>
-              <p className="font-display text-2xl">Livraison offerte</p>
-              <p className="text-[0.95rem] text-white/85">
-                dès 15 € à moins de 15 km
-              </p>
-            </li>
-            <li>
-              <p className="font-display text-2xl">Trompe-l&apos;œil à J+1</p>
-              <p className="text-[0.95rem] text-white/85">
-                le temps de les sculpter
-              </p>
-            </li>
-            <li>
-              <p className="font-display text-2xl">Retrait à l&apos;atelier</p>
-              <p className="text-[0.95rem] text-white/85">
-                sur réservation, à Houilles
-              </p>
-            </li>
-          </ul>
-        </section>
+          <span className="font-display text-3xl text-framboise">78</span>
+        </CircularText>
 
-        {/* Vitrine */}
-        <section
-          id="vitrine"
-          className="mx-auto w-[min(1200px,92%)] pt-24 pb-16"
-        >
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            <div>
-              <h2 className="display-lg">La vitrine</h2>
-              <p className="lede mt-3">
-                Tout est préparé à la commande. Choisissez le parfum au moment
-                d&apos;ajouter au panier.
-              </p>
-            </div>
-            <div
-              className="tabs"
-              role="group"
-              aria-label="Filtrer par catégorie"
+        <div className="absolute bottom-[8%] -left-3 rotate-[-5deg] sm:-left-8">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.p
+              key={product.id}
+              className="price-tag text-[1.05rem]"
+              initial={{ opacity: 0, y: 14, rotate: -8 }}
+              animate={{ opacity: 1, y: 0, rotate: 0 }}
+              exit={{ opacity: 0, y: -14, rotate: 6 }}
+              transition={{ type: "spring", stiffness: 300, damping: 22 }}
             >
-              {categories.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className="tab"
-                  aria-pressed={category === item}
-                  onClick={() => setCategory(item)}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-          </div>
+              <span className="font-semibold">{product.name}</span>
+              <span className="text-framboise">
+                {formatPrice(product.price)}
+              </span>
+            </motion.p>
+          </AnimatePresence>
+        </div>
 
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {visibleProducts.map((item) => {
-              const featured =
-                category === "Tout" && featuredIds.includes(item.id);
-              return (
-                <article
-                  key={item.id}
-                  className={`vitrine-card ${featured ? "lg:col-span-2" : ""}`}
+        <div
+          className="absolute -bottom-8 left-1/2 flex -translate-x-1/2 gap-2"
+          role="group"
+          aria-label="Choisir la photo"
+        >
+          {heroSlides.map((item, index) => (
+            <button
+              key={item.id}
+              type="button"
+              aria-label={item.name}
+              aria-pressed={slide === index}
+              onClick={() => setSlide(index)}
+              className="grid h-6 place-items-center px-0.5"
+            >
+              <span
+                className={`block h-2 rounded-full transition-all duration-500 ${
+                  slide === index
+                    ? "w-8 bg-framboise"
+                    : "w-2 bg-ganache/25 hover:bg-ganache/50"
+                }`}
+              />
+            </button>
+          ))}
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+
+/* ---------------- Rubans croisés ---------------- */
+
+function RibbonCross() {
+  return (
+    <section aria-label="En bref" className="relative py-14">
+      <Marquee
+        speed={40}
+        className="relative z-10 rotate-[-3deg] bg-framboise py-4 shadow-[0_16px_30px_-18px_rgba(59,29,23,.6)]"
+      >
+        {ribbonA.map((word) => (
+          <span
+            key={word}
+            className="font-display flex items-center gap-8 pr-8 text-2xl text-white sm:text-3xl"
+          >
+            {word}
+            <span aria-hidden="true" className="text-mangue">
+              ✦
+            </span>
+          </span>
+        ))}
+      </Marquee>
+      <Marquee
+        speed={48}
+        reverse
+        className="absolute inset-x-0 top-1/2 -translate-y-1/2 rotate-[2.5deg] bg-pistache py-3"
+      >
+        {ribbonB.map((word) => (
+          <span
+            key={word}
+            className="flex items-center gap-8 pr-8 text-lg font-extrabold text-pistache-deep"
+          >
+            {word}
+            <span aria-hidden="true">●</span>
+          </span>
+        ))}
+      </Marquee>
+    </section>
+  );
+}
+
+/* ---------------- Vitrine ---------------- */
+
+function Vitrine({ onOpen }: { onOpen: (product: Product) => void }) {
+  const [category, setCategory] = useState("Tout");
+  const visibleProducts =
+    category === "Tout"
+      ? catalog
+      : catalog.filter((item) => item.category === category);
+
+  return (
+    <section id="vitrine" className="mx-auto w-[min(1200px,92%)] pt-16 pb-16">
+      <div className="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <SplitWords as="h2" text="La vitrine" className="display-lg" inView />
+          <Reveal delay={0.1}>
+            <p className="lede mt-3">
+              Tout est préparé à la commande. Cliquez sur un gâteau pour choisir
+              son parfum et l&apos;ajouter au panier.
+            </p>
+          </Reveal>
+        </div>
+        <div className="tabs" role="group" aria-label="Filtrer par catégorie">
+          {categories.map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={`relative isolate rounded-full px-4 py-2 text-[0.95rem] font-bold transition-colors duration-300 ${
+                category === item
+                  ? "text-chantilly"
+                  : "text-ganache hover:bg-white/60"
+              }`}
+              aria-pressed={category === item}
+              onClick={() => setCategory(item)}
+            >
+              {category === item && (
+                <motion.span
+                  layoutId="vitrine-tab"
+                  className="absolute inset-0 -z-10 rounded-full bg-ganache"
+                  transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                />
+              )}
+              {item}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <motion.div
+        layout
+        className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+      >
+        <AnimatePresence mode="popLayout">
+          {visibleProducts.map((item, index) => {
+            const featured =
+              category === "Tout" && featuredIds.includes(item.id);
+            return (
+              <motion.article
+                key={item.id}
+                layout
+                initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, amount: 0.15 }}
+                exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                transition={{
+                  duration: 0.6,
+                  delay: (index % 3) * 0.08,
+                  ease: easeOut,
+                }}
+                className={featured ? "lg:col-span-2" : ""}
+              >
+                <TiltCard
+                  className="vitrine-card group h-full"
+                  max={featured ? 4 : 7}
                 >
                   <button
                     type="button"
-                    onClick={() => setSelectedProduct(item)}
+                    onClick={() => onOpen(item)}
                     className="text-left"
                     aria-label={`Voir le détail : ${item.name}`}
                   >
-                    <div
+                    <motion.div
+                      layoutId={`photo-${item.id}`}
                       className={`vitrine-photo ${featured ? "lg:aspect-[2.43/1]" : ""}`}
                     >
                       <Image
@@ -245,6 +454,10 @@ export default function Home() {
                         }
                         className="object-cover"
                       />
+                      <span className="absolute inset-0 bg-gradient-to-t from-ganache/60 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                      <span className="absolute right-4 bottom-4 translate-y-3 rounded-full bg-white px-4 py-2 text-sm font-bold text-ganache opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
+                        Choisir le parfum
+                      </span>
                       <span
                         className={`chip absolute top-3 right-3 ${
                           item.category === "Trompe-l'œil" ||
@@ -255,12 +468,12 @@ export default function Home() {
                       >
                         {item.tag}
                       </span>
-                      <span className="price-tag absolute bottom-4 left-0">
+                      <span className="price-tag absolute bottom-4 left-0 transition-transform duration-500 group-hover:-rotate-6">
                         {formatPrice(item.price)}
                       </span>
-                    </div>
+                    </motion.div>
                     <div className="px-3 pt-5">
-                      <h3 className="text-xl leading-tight font-extrabold text-ganache">
+                      <h3 className="text-xl leading-tight font-extrabold text-ganache transition-colors group-hover:text-framboise">
                         {item.name}
                       </h3>
                       <p className="mt-1.5 text-[0.98rem] text-cacao">
@@ -272,252 +485,571 @@ export default function Home() {
                     <p className="text-sm font-semibold text-cacao">
                       {getDeliveryDelay(item)}
                     </p>
-                    <Link
-                      href={`/commander?product=${encodeURIComponent(item.id)}`}
-                      className="btn btn-primary btn-sm"
+                    <button
+                      type="button"
+                      onClick={() => onOpen(item)}
+                      className="btn btn-primary btn-sm shine"
                     >
-                      Commander
-                    </Link>
+                      Ajouter
+                    </button>
                   </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
+                </TiltCard>
+              </motion.article>
+            );
+          })}
+        </AnimatePresence>
+      </motion.div>
+    </section>
+  );
+}
 
-        {/* Les plus commandés */}
-        <section
-          id="best"
-          className="mx-auto grid w-[min(1200px,92%)] items-center gap-12 py-16 lg:grid-cols-[.9fr_1.1fr]"
-        >
-          <div className="relative aspect-[4/5] overflow-hidden rounded-[2.5rem] rounded-tl-[9rem] bg-framboise-soft">
+/* ---------------- Les plus commandés ---------------- */
+
+function BestSellers() {
+  const [active, setActive] = useState(0);
+  const product = bestSellerProducts[active];
+
+  return (
+    <section
+      id="best"
+      className="mx-auto grid w-[min(1200px,92%)] items-center gap-12 py-20 lg:grid-cols-[.9fr_1.1fr]"
+    >
+      <Reveal className="relative aspect-[4/5] overflow-hidden rounded-[2.5rem] rounded-tl-[9rem] bg-framboise-soft">
+        <AnimatePresence initial={false}>
+          <motion.div
+            key={product.id}
+            className="absolute inset-0"
+            initial={{ clipPath: "circle(0% at 50% 50%)" }}
+            animate={{ clipPath: "circle(75% at 50% 50%)" }}
+            exit={{ opacity: 0, transition: { delay: 0.5, duration: 0.2 } }}
+            transition={{ duration: 0.8, ease: easeOut }}
+          >
             <Image
-              src={heroSideProduct.image}
-              alt="Cookies Triple Choco tout juste sortis du four"
+              src={product.image}
+              alt={product.name}
               fill
               sizes="(min-width: 1024px) 480px, 92vw"
               className="object-cover"
             />
-          </div>
+          </motion.div>
+        </AnimatePresence>
+        <span className="font-display absolute top-6 right-6 grid h-20 w-20 place-items-center rounded-full bg-chantilly text-4xl text-framboise">
+          {active + 1}
+        </span>
+      </Reveal>
 
-          <div>
-            <h2 className="display-lg">Les plus commandés</h2>
-            <p className="lede mt-3">
-              Ce qui part en premier, semaine après semaine.
-            </p>
-            <ol className="mt-8 grid gap-1">
-              {bestSellerProducts.map((item, index) => (
-                <li key={item.id}>
-                  <Link
-                    href={`/commander?product=${encodeURIComponent(item.id)}`}
-                    className="group grid grid-cols-[3rem_4.5rem_1fr_auto] items-center gap-4 border-b border-line py-4 sm:grid-cols-[4rem_5rem_1fr_auto]"
-                  >
-                    <span className="font-display text-5xl leading-none text-framboise sm:text-6xl">
-                      {index + 1}
-                    </span>
-                    <span className="relative aspect-square overflow-hidden rounded-2xl">
-                      <Image
-                        src={item.image}
-                        alt=""
-                        fill
-                        sizes="5rem"
-                        className="object-cover"
-                      />
-                    </span>
-                    <span>
-                      <span className="block text-lg leading-tight font-extrabold text-ganache group-hover:text-framboise">
-                        {item.name}
-                      </span>
-                      <span className="mt-0.5 block text-sm text-cacao">
-                        {item.description}
-                      </span>
-                    </span>
-                    <span className="text-lg font-extrabold tabular-nums text-ganache">
-                      {formatPrice(item.price)}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ol>
-            <Link href="/commander" className="btn btn-primary mt-8">
-              Composer ma commande
-            </Link>
-          </div>
-        </section>
-
-        {/* Comment ça marche */}
-        <section className="mx-auto w-[min(1200px,92%)] py-20">
-          <h2 className="display-lg max-w-xl">
-            Commander, c&apos;est trois étapes.
-          </h2>
-          <ol className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">
-            {steps.map((step, index) => (
-              <li key={step.title}>
+      <div>
+        <SplitWords
+          as="h2"
+          text="Les plus commandés"
+          className="display-lg"
+          inView
+        />
+        <Reveal delay={0.1}>
+          <p className="lede mt-3">
+            Ce qui part en premier, semaine après semaine.
+          </p>
+        </Reveal>
+        <ol className="mt-8 grid gap-1">
+          {bestSellerProducts.map((item, index) => (
+            <motion.li
+              key={item.id}
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{
+                duration: 0.6,
+                delay: 0.1 + index * 0.08,
+                ease: easeOut,
+              }}
+            >
+              <Link
+                href={`/commander?product=${encodeURIComponent(item.id)}`}
+                onPointerEnter={() => setActive(index)}
+                onFocus={() => setActive(index)}
+                className={`group relative grid grid-cols-[3rem_4.5rem_1fr_auto] items-center gap-4 overflow-hidden rounded-2xl border-b border-line px-2 py-4 transition-colors sm:grid-cols-[4rem_5rem_1fr_auto] ${
+                  active === index ? "bg-chantilly" : ""
+                }`}
+              >
                 <span
-                  className={`scallop-frame font-display grid h-20 w-20 place-items-center text-4xl ${
-                    [
-                      "bg-mangue text-ganache",
-                      "bg-pistache text-pistache-deep",
-                      "bg-framboise text-white",
-                    ][index]
+                  className={`font-display text-5xl leading-none transition-all duration-500 sm:text-6xl ${
+                    active === index
+                      ? "-rotate-6 text-framboise"
+                      : "text-ganache/25"
                   }`}
-                  aria-hidden="true"
                 >
                   {index + 1}
                 </span>
-                <h3 className="mt-5 text-2xl font-extrabold text-ganache">
-                  {step.title}
-                </h3>
-                <p className="mt-2 max-w-sm text-cacao">{step.text}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        {/* Avis */}
-        <section
-          id="avis"
-          className="band band-scallop-top band-scallop-bottom mt-10 text-ganache"
-          style={bandStyle("var(--chantilly)")}
-        >
-          <div className="mx-auto w-[min(1200px,92%)] py-20">
-            <div className="flex flex-wrap items-end justify-between gap-6">
-              <h2 className="display-lg">Ils en redemandent</h2>
-              <p className="text-lg text-cacao">
-                <span className="font-display text-4xl text-framboise">
-                  4,9
-                </span>{" "}
-                / 5 sur les retours clients
-              </p>
-            </div>
-            <div className="mt-12 grid gap-10 md:grid-cols-3">
-              {reviews.map((review) => (
-                <figure
-                  key={review.id}
-                  className="border-t-2 border-ganache pt-6"
-                >
-                  <p className="text-mangue" aria-label="5 étoiles sur 5">
-                    ★★★★★
-                  </p>
-                  <blockquote className="mt-3 text-xl leading-snug font-medium">
-                    « {review.text} »
-                  </blockquote>
-                  <figcaption className="mt-5 text-[0.95rem] text-cacao">
-                    <span className="font-bold text-ganache">
-                      {review.name}
-                    </span>
-                    , {review.city}
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Sur mesure */}
-        <section
-          id="histoire"
-          className="mx-auto w-[min(1200px,92%)] pt-28 pb-8 text-center"
-        >
-          <h2 className="display-lg mx-auto max-w-3xl">
-            Un anniversaire, un baptême, un mariage ?
-          </h2>
-          <p className="lede mx-auto mt-5">
-            On crée le gâteau sur mesure : thème, couleurs, parfums et nombre de
-            parts. Dites-nous la date, on s&apos;occupe du reste.
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link href="/contact" className="btn btn-primary">
-              Demander un devis
-            </Link>
-            <Link href="/livraison" className="btn btn-outline">
-              Zones de livraison
-            </Link>
-          </div>
-        </section>
-      </main>
-
-      {selectedProduct && (
-        <div
-          className="dialog-backdrop fixed inset-0 z-[80] flex items-end justify-center overflow-y-auto p-3 sm:items-center sm:p-6"
-          onClick={() => setSelectedProduct(null)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="product-dialog-title"
-            className="dialog-panel grid w-full max-w-3xl overflow-hidden rounded-[2rem] bg-chantilly sm:grid-cols-[.9fr_1.1fr]"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="relative aspect-[4/3] sm:aspect-auto">
-              <Image
-                src={selectedProduct.image}
-                alt={selectedProduct.name}
-                fill
-                sizes="(min-width: 640px) 340px, 100vw"
-                className="object-cover"
-              />
-            </div>
-            <div className="p-6 sm:p-8">
-              <div className="flex items-start justify-between gap-3">
-                <span className="chip chip-framboise">
-                  {selectedProduct.category}
+                <span className="relative aspect-square overflow-hidden rounded-2xl">
+                  <Image
+                    src={item.image}
+                    alt=""
+                    fill
+                    sizes="5rem"
+                    className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedProduct(null)}
-                  className="btn btn-soft btn-round"
-                  aria-label="Fermer"
-                >
-                  ×
-                </button>
-              </div>
-              <h2 id="product-dialog-title" className="display-md mt-3">
-                {selectedProduct.name}
-              </h2>
-              <p className="mt-2 text-cacao">{selectedProduct.description}</p>
-              <p className="mt-4 text-2xl font-extrabold tabular-nums">
-                {formatPrice(selectedProduct.price)}
-              </p>
-
-              <dl className="mt-5 grid gap-4 border-t border-line pt-5 text-[0.95rem]">
-                <div>
-                  <dt className="font-bold">Parfums</dt>
-                  <dd className="mt-2 flex flex-wrap gap-1.5">
-                    {selectedProduct.flavors.map((flavor) => (
-                      <span
-                        key={flavor}
-                        className="rounded-full bg-lait-fraise px-3 py-1 text-sm"
-                      >
-                        {flavor}
-                      </span>
-                    ))}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="font-bold">Allergènes</dt>
-                  <dd className="text-cacao">
-                    {selectedProduct.allergens.join(", ")}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="font-bold">Délai</dt>
-                  <dd className="text-cacao">
-                    {getDeliveryDelay(selectedProduct)}
-                  </dd>
-                </div>
-              </dl>
-
-              <Link
-                href={`/commander?product=${encodeURIComponent(selectedProduct.id)}`}
-                className="btn btn-primary mt-6 w-full"
-              >
-                Choisir le parfum et commander
+                <span>
+                  <span className="block text-lg leading-tight font-extrabold text-ganache">
+                    {item.name}
+                  </span>
+                  <span className="mt-0.5 block text-sm text-cacao">
+                    {item.description}
+                  </span>
+                </span>
+                <span className="text-lg font-extrabold tabular-nums text-ganache">
+                  {formatPrice(item.price)}
+                </span>
               </Link>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+            </motion.li>
+          ))}
+        </ol>
+        <Reveal delay={0.3}>
+          <Magnetic>
+            <Link href="/commander" className="btn btn-primary shine mt-8 px-7">
+              Composer ma commande
+            </Link>
+          </Magnetic>
+        </Reveal>
+      </div>
+    </section>
   );
 }
+
+/* ---------------- Étapes ---------------- */
+
+function Steps() {
+  const ref = useRef<HTMLOListElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start 85%", "end 55%"],
+  });
+
+  return (
+    <section className="mx-auto w-[min(1200px,92%)] py-20">
+      <SplitWords
+        as="h2"
+        text="Commander, c'est trois étapes."
+        className="display-lg max-w-xl"
+        inView
+      />
+      <ol
+        ref={ref}
+        className="relative mt-14 grid gap-12 md:grid-cols-3 md:gap-8"
+      >
+        {/* Ligne de progression qui se dessine au scroll */}
+        <span
+          aria-hidden="true"
+          className="absolute top-10 right-[16%] left-[16%] hidden h-1 rounded-full bg-ganache/10 md:block"
+        />
+        <motion.span
+          aria-hidden="true"
+          className="absolute top-10 left-[16%] hidden h-1 origin-left rounded-full bg-framboise md:block"
+          style={{ scaleX: scrollYProgress, width: "68%" }}
+        />
+        {steps.map((step, index) => (
+          <StepItem
+            key={step.title}
+            step={step}
+            index={index}
+            progress={scrollYProgress}
+          />
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function StepItem({
+  step,
+  index,
+  progress,
+}: {
+  step: (typeof steps)[number];
+  index: number;
+  progress: MotionValue<number>;
+}) {
+  const reduce = useReducedMotion();
+  const threshold = index / 2;
+  const scale = useTransform(
+    progress,
+    [Math.max(0, threshold - 0.15), threshold],
+    [0.6, 1],
+  );
+  const rotate = useTransform(
+    progress,
+    [Math.max(0, threshold - 0.15), threshold],
+    [-90, 0],
+  );
+  return (
+    <li className="relative">
+      <motion.span
+        style={reduce ? undefined : { scale, rotate }}
+        className={`scallop-frame font-display relative grid h-20 w-20 place-items-center text-4xl ${step.tone}`}
+        aria-hidden="true"
+      >
+        {index + 1}
+      </motion.span>
+      <Reveal delay={index * 0.1} y={20}>
+        <h3 className="mt-5 text-2xl font-extrabold text-ganache">
+          {step.title}
+        </h3>
+        <p className="mt-2 max-w-sm text-cacao">{step.text}</p>
+      </Reveal>
+    </li>
+  );
+}
+
+/* ---------------- Avis ---------------- */
+
+function Reviews() {
+  return (
+    <section
+      id="avis"
+      className="band band-scallop-top band-scallop-bottom mt-10 text-ganache"
+      style={bandStyle("var(--chantilly)")}
+    >
+      <div className="mx-auto w-[min(1200px,92%)] py-20">
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <SplitWords
+            as="h2"
+            text="Ils en redemandent"
+            className="display-lg"
+            inView
+          />
+          <Reveal>
+            <p className="text-lg text-cacao">
+              <CountUp
+                to={4.9}
+                decimals={1}
+                className="font-display text-6xl text-framboise"
+              />{" "}
+              / 5 sur les retours clients
+            </p>
+          </Reveal>
+        </div>
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+          {reviews.map((review, index) => (
+            <Reveal key={review.id} delay={index * 0.12}>
+              <TiltCard className="h-full rounded-[1.75rem]" max={5}>
+                <figure className="relative h-full overflow-hidden rounded-[1.75rem] bg-lait-fraise p-7">
+                  <span
+                    aria-hidden="true"
+                    className="font-display absolute -top-6 right-4 text-[9rem] leading-none text-framboise/15"
+                  >
+                    &ldquo;
+                  </span>
+                  <p className="text-mangue" aria-label="5 étoiles sur 5">
+                    {Array.from({ length: 5 }).map((_, star) => (
+                      <motion.span
+                        key={star}
+                        className="inline-block text-xl"
+                        initial={{ scale: 0, rotate: -90 }}
+                        whileInView={{ scale: 1, rotate: 0 }}
+                        viewport={{ once: true }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 12,
+                          delay: 0.3 + index * 0.12 + star * 0.07,
+                        }}
+                      >
+                        ★
+                      </motion.span>
+                    ))}
+                  </p>
+                  <blockquote className="relative mt-3 text-xl leading-snug font-medium">
+                    « {review.text} »
+                  </blockquote>
+                  <figcaption className="mt-5 flex items-center gap-3 text-[0.95rem] text-cacao">
+                    <span className="font-display grid h-10 w-10 place-items-center rounded-full bg-framboise text-lg text-white">
+                      {review.name[0]}
+                    </span>
+                    <span>
+                      <span className="block font-bold text-ganache">
+                        {review.name}
+                      </span>
+                      {review.city}
+                    </span>
+                  </figcaption>
+                </figure>
+              </TiltCard>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- Sur mesure : texte qui se colore au scroll ---------------- */
+
+function Story() {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start 85%", "end 45%"],
+  });
+  const words = storyText.split(" ");
+
+  return (
+    <section
+      id="histoire"
+      className="relative mx-auto w-[min(1100px,92%)] pt-32 pb-8 text-center"
+    >
+      <p
+        ref={ref}
+        className="display-lg mx-auto leading-[1.12]"
+        aria-label={storyText}
+      >
+        {words.map((word, index) => (
+          <StoryWord
+            key={`${word}-${index}`}
+            word={word}
+            index={index}
+            total={words.length}
+            progress={scrollYProgress}
+          />
+        ))}
+      </p>
+      <Reveal delay={0.1} className="mt-10 flex flex-wrap justify-center gap-3">
+        <Magnetic>
+          <Link href="/contact" className="btn btn-primary shine px-7">
+            Demander un devis
+          </Link>
+        </Magnetic>
+        <Magnetic>
+          <Link href="/livraison" className="btn btn-outline px-7">
+            Zones de livraison
+          </Link>
+        </Magnetic>
+      </Reveal>
+    </section>
+  );
+}
+
+function StoryWord({
+  word,
+  index,
+  total,
+  progress,
+}: {
+  word: string;
+  index: number;
+  total: number;
+  progress: MotionValue<number>;
+}) {
+  const reduce = useReducedMotion();
+  const start = index / total;
+  const opacity = useTransform(progress, [start, start + 1 / total], [0.15, 1]);
+  const highlight = ["anniversaire,", "baptême,", "mariage", "date,"].includes(
+    word,
+  );
+  return (
+    <motion.span
+      aria-hidden="true"
+      style={reduce ? undefined : { opacity }}
+      className={highlight ? "text-framboise" : undefined}
+    >
+      {word}{" "}
+    </motion.span>
+  );
+}
+
+/* ---------------- Fiche produit ---------------- */
+
+function ProductDialog({
+  product,
+  onClose,
+}: {
+  product: Product;
+  onClose: () => void;
+}) {
+  const { addItem } = useCart();
+  const [flavor, setFlavor] = useState(product.flavors[0] ?? "Classique");
+  const [qty, setQty] = useState(1);
+  const [added, setAdded] = useState(false);
+  const photoRef = useRef<HTMLDivElement>(null);
+
+  const add = (event: React.MouseEvent<HTMLButtonElement>) => {
+    addItem({ productId: product.id, flavor, qty });
+    const rect =
+      photoRef.current?.getBoundingClientRect() ??
+      event.currentTarget.getBoundingClientRect();
+    sprinkleBurst(event.clientX, event.clientY);
+    flyToCart(rect, product.image);
+    setAdded(true);
+  };
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[80] flex items-end justify-center overflow-y-auto p-3 sm:items-center sm:p-6"
+      initial={{ backgroundColor: "rgba(59,29,23,0)" }}
+      animate={{ backgroundColor: "rgba(59,29,23,0.55)" }}
+      exit={{ backgroundColor: "rgba(59,29,23,0)" }}
+      onClick={onClose}
+    >
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="product-dialog-title"
+        className="grid w-full max-w-4xl overflow-hidden rounded-[2rem] bg-chantilly shadow-2xl sm:grid-cols-[1fr_1.05fr]"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 40 }}
+        transition={{ type: "spring", stiffness: 260, damping: 28 }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <motion.div
+          ref={photoRef}
+          layoutId={`photo-${product.id}`}
+          className="relative aspect-[4/3] sm:aspect-auto sm:min-h-[30rem]"
+        >
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            sizes="(min-width: 640px) 440px, 100vw"
+            className="object-cover"
+          />
+          <span className="price-tag absolute bottom-6 left-0 text-lg">
+            {formatPrice(product.price)}
+          </span>
+        </motion.div>
+        <motion.div
+          className="p-6 sm:p-8"
+          initial="hidden"
+          animate="show"
+          variants={{
+            show: {
+              transition: { staggerChildren: 0.06, delayChildren: 0.15 },
+            },
+          }}
+        >
+          <motion.div
+            variants={item}
+            className="flex items-start justify-between gap-3"
+          >
+            <span className="chip chip-framboise">{product.category}</span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn btn-soft btn-round transition-transform hover:rotate-90"
+              aria-label="Fermer"
+            >
+              ×
+            </button>
+          </motion.div>
+          <motion.h2
+            variants={item}
+            id="product-dialog-title"
+            className="display-md mt-3"
+          >
+            {product.name}
+          </motion.h2>
+          <motion.p variants={item} className="mt-2 text-cacao">
+            {product.description}
+          </motion.p>
+
+          <motion.fieldset variants={item} className="mt-5">
+            <legend className="field-label">Parfum</legend>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {product.flavors.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className="tab"
+                  aria-pressed={flavor === value}
+                  onClick={() => setFlavor(value)}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+          </motion.fieldset>
+
+          <motion.dl
+            variants={item}
+            className="mt-5 grid grid-cols-2 gap-4 text-[0.95rem]"
+          >
+            <div>
+              <dt className="font-bold">Délai</dt>
+              <dd className="text-cacao">{getDeliveryDelay(product)}</dd>
+            </div>
+            <div>
+              <dt className="font-bold">Allergènes</dt>
+              <dd className="text-cacao">{product.allergens.join(", ")}</dd>
+            </div>
+          </motion.dl>
+
+          <motion.div
+            variants={item}
+            className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t-2 border-ganache pt-5"
+          >
+            <div
+              className="flex items-center gap-2"
+              role="group"
+              aria-label="Quantité"
+            >
+              <button
+                type="button"
+                className="btn btn-soft btn-round"
+                aria-label="Diminuer"
+                onClick={() => setQty((v) => Math.max(1, v - 1))}
+              >
+                −
+              </button>
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span
+                  key={qty}
+                  initial={{ y: 12, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -12, opacity: 0 }}
+                  className="w-8 text-center text-xl font-extrabold tabular-nums"
+                >
+                  {qty}
+                </motion.span>
+              </AnimatePresence>
+              <button
+                type="button"
+                className="btn btn-primary btn-round shadow-none!"
+                aria-label="Augmenter"
+                onClick={() => setQty((v) => Math.min(30, v + 1))}
+              >
+                +
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={add}
+              className="btn btn-primary shine"
+            >
+              Ajouter pour {formatPrice(product.price * qty)}
+            </button>
+          </motion.div>
+
+          <AnimatePresence>
+            {added && (
+              <motion.p
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-pistache px-4 py-3 font-semibold text-pistache-deep"
+                role="status"
+              >
+                Ajouté au panier !
+                <Link href="/checkout" className="underline">
+                  Voir mon panier
+                </Link>
+              </motion.p>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+const item = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: easeOut } },
+};

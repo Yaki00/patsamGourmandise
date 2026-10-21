@@ -1,7 +1,24 @@
 "use client";
 
 import Image from "next/image";
-import { CSSProperties, Suspense, useEffect, useMemo, useState } from "react";
+import {
+  CSSProperties,
+  MouseEvent,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import {
+  easeOut,
+  Magnetic,
+  Reveal,
+  SplitWords,
+  TiltCard,
+} from "@/components/fx";
+import { flyToCart, sprinkleBurst } from "@/lib/sprinkles";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Product, formatPrice, productCatalog } from "@/data/products";
@@ -907,7 +924,7 @@ function CommanderPageContent() {
     );
   };
 
-  const addFormulaToCart = () => {
+  const addFormulaToCart = (event: MouseEvent<HTMLButtonElement>) => {
     const normalized = formulaRows
       .map((row) => {
         const product = productCatalog.find(
@@ -927,8 +944,9 @@ function CommanderPageContent() {
     }
 
     normalized.forEach((line) => addItem(line));
-
-    setFormulaFeedback("Box ajoutée au panier.");
+    sprinkleBurst(event.clientX, event.clientY, 40);
+    window.dispatchEvent(new CustomEvent("cart:bump"));
+    setFormulaFeedback("Box ajoutée au panier !");
   };
 
   const openConfigModal = (product: Product) => {
@@ -938,14 +956,23 @@ function CommanderPageContent() {
     setModalOpen(true);
   };
 
-  const confirmModalSelection = () => {
+  const confirmModalSelection = (event: MouseEvent<HTMLButtonElement>) => {
     if (!selectedProduct) return;
+    sprinkleBurst(event.clientX, event.clientY);
+    flyToCart(
+      previewRef.current?.getBoundingClientRect() ??
+        event.currentTarget.getBoundingClientRect(),
+      selectedProduct.image,
+    );
     const productId = selectedProduct.id;
     const flavor = modalFlavor || selectedProduct.flavors[0] || "Classique";
     const qty = Math.max(1, Math.min(30, modalQty));
     addItem({ productId, flavor, qty });
     setModalOpen(false);
   };
+
+  const previewRef = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
 
   const decreaseCartQty = (key: string) => {
     const [productId, flavor] = key.split("::");
@@ -966,26 +993,32 @@ function CommanderPageContent() {
       <SiteHeader currentPage="commander" />
 
       <main className="mx-auto w-[min(1200px,92%)] pt-12 sm:pt-16">
-        <section className="hero-in mb-10 max-w-3xl">
-          <h1 className="display-lg">Composez votre commande</h1>
-          <p className="lede mt-4">
-            Choisissez un produit, son parfum et la quantité : l&apos;aperçu se
-            met à jour en direct. Vous finalisez ensuite la livraison au panier.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-2">
-            <p className="note">
-              <span className="note-dot" aria-hidden="true">
-                ✦
-              </span>
-              Livraison à Houilles (78) et jusqu&apos;à 50 km
+        <section className="mb-10 max-w-3xl">
+          <SplitWords text="Composez votre commande" className="display-lg" />
+          <Reveal delay={0.35} y={20}>
+            <p className="lede mt-4">
+              Choisissez un produit, son parfum et la quantité : l&apos;aperçu
+              se met à jour en direct. Vous finalisez ensuite la livraison au
+              panier.
             </p>
-            <p className="note">
-              <span className="note-dot bg-framboise-soft!" aria-hidden="true">
-                !
-              </span>
-              Trompe-l&apos;œil : à commander la veille (J+1)
-            </p>
-          </div>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <p className="note">
+                <span className="note-dot" aria-hidden="true">
+                  ✦
+                </span>
+                Livraison à Houilles (78) et jusqu&apos;à 50 km
+              </p>
+              <p className="note">
+                <span
+                  className="note-dot bg-framboise-soft!"
+                  aria-hidden="true"
+                >
+                  !
+                </span>
+                Trompe-l&apos;œil : à commander la veille (J+1)
+              </p>
+            </div>
+          </Reveal>
         </section>
 
         <div className="grid items-start gap-8 xl:grid-cols-[1fr_22rem]">
@@ -999,91 +1032,134 @@ function CommanderPageContent() {
                 <button
                   key={category}
                   type="button"
-                  className="tab"
+                  className={`relative isolate rounded-full px-4 py-2 text-[0.95rem] font-bold transition-colors duration-300 ${
+                    selectedCategory === category
+                      ? "text-chantilly"
+                      : "text-ganache hover:bg-white/60"
+                  }`}
                   aria-pressed={selectedCategory === category}
                   onClick={() => setSelectedCategory(category)}
                 >
+                  {selectedCategory === category && (
+                    <motion.span
+                      layoutId="commander-tab"
+                      className="absolute inset-0 -z-10 rounded-full bg-ganache"
+                      transition={{
+                        type: "spring",
+                        stiffness: 420,
+                        damping: 32,
+                      }}
+                    />
+                  )}
                   {category}
                 </button>
               ))}
             </div>
 
-            <article
-              className="band grid overflow-hidden rounded-[1.75rem] sm:grid-cols-[1fr_1.1fr]"
-              style={{ "--band": "var(--pistache)" } as CSSProperties}
-            >
-              <div className="relative grid min-h-56 place-items-center">
-                <div className="formula-card-preview float-soft">
-                  <ProductBox3D
-                    category="Box"
-                    flavor="Mix surprise"
-                    label="BOX MIX"
+            <Reveal>
+              <article
+                className="band group grid overflow-hidden rounded-[1.75rem] sm:grid-cols-[1fr_1.1fr]"
+                style={{ "--band": "var(--pistache)" } as CSSProperties}
+              >
+                <div className="relative grid min-h-56 place-items-center">
+                  <span
+                    aria-hidden="true"
+                    className="spin-slow absolute h-44 w-44 rounded-full border-[3px] border-dashed border-pistache-deep/25"
                   />
-                </div>
-              </div>
-              <div className="flex flex-col justify-center p-6 sm:p-8">
-                <p className="chip w-fit bg-chantilly!">À partir de 29,00 €</p>
-                <h2 className="display-md mt-3 text-pistache-deep!">
-                  La box à composer
-                </h2>
-                <p className="mt-2 text-ganache">
-                  Mélangez ce que vous voulez : 2 cookies, 1 layer cake, 1
-                  trompe-l&apos;œil… Idéal pour offrir.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setFormulaModalOpen(true)}
-                  className="btn btn-primary mt-5 w-fit"
-                >
-                  Composer ma box
-                </button>
-              </div>
-            </article>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              {filteredProducts.map((item) => (
-                <article key={item.id} className="vitrine-card">
-                  <div className="vitrine-photo">
-                    <Image
-                      src={item.image}
-                      alt={item.name}
-                      fill
-                      sizes="(min-width: 768px) 420px, 92vw"
-                      className="object-cover"
+                  <div className="formula-card-preview bob transition-transform duration-500 group-hover:scale-110">
+                    <ProductBox3D
+                      category="Box"
+                      flavor="Mix surprise"
+                      label="BOX MIX"
                     />
-                    <span className="chip chip-framboise absolute top-3 right-3">
-                      {item.tag}
-                    </span>
-                    <span className="price-tag absolute bottom-4 left-0">
-                      {formatPrice(item.price)}
-                    </span>
                   </div>
-                  <div className="px-3 pt-5">
-                    <h2 className="text-xl leading-tight font-extrabold text-ganache">
-                      {item.name}
-                    </h2>
-                    <p className="mt-1.5 text-[0.98rem] text-cacao">
-                      {item.description}
-                    </p>
-                    <p className="mt-3 text-sm text-cacao">
-                      <span className="font-bold text-ganache">
-                        {item.flavors.length} parfums
-                      </span>{" "}
-                      : {item.flavors.join(", ")}
-                    </p>
-                  </div>
-                  <div className="mt-auto px-3 pt-5">
-                    <button
-                      type="button"
-                      onClick={() => openConfigModal(item)}
-                      className="btn btn-primary w-full"
-                    >
-                      Choisir le parfum
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
+                </div>
+                <div className="flex flex-col justify-center p-6 sm:p-8">
+                  <p className="chip w-fit bg-chantilly!">
+                    À partir de 29,00 €
+                  </p>
+                  <h2 className="display-md mt-3 text-pistache-deep!">
+                    La box à composer
+                  </h2>
+                  <p className="mt-2 text-ganache">
+                    Mélangez ce que vous voulez : 2 cookies, 1 layer cake, 1
+                    trompe-l&apos;œil… Idéal pour offrir.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setFormulaModalOpen(true)}
+                    className="btn btn-primary shine mt-5 w-fit"
+                  >
+                    Composer ma box
+                  </button>
+                </div>
+              </article>
+            </Reveal>
+
+            <motion.div layout className="grid gap-6 md:grid-cols-2">
+              <AnimatePresence mode="popLayout">
+                {filteredProducts.map((item, index) => (
+                  <motion.article
+                    key={item.id}
+                    layout
+                    initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                    whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                    viewport={{ once: true, amount: 0.15 }}
+                    exit={{
+                      opacity: 0,
+                      scale: 0.9,
+                      transition: { duration: 0.2 },
+                    }}
+                    transition={{
+                      duration: 0.6,
+                      delay: (index % 2) * 0.08,
+                      ease: easeOut,
+                    }}
+                  >
+                    <TiltCard className="vitrine-card group h-full" max={6}>
+                      <div className="vitrine-photo">
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          sizes="(min-width: 768px) 420px, 92vw"
+                          className="object-cover"
+                        />
+                        <span className="chip chip-framboise absolute top-3 right-3">
+                          {item.tag}
+                        </span>
+                        <span className="price-tag absolute bottom-4 left-0">
+                          {formatPrice(item.price)}
+                        </span>
+                      </div>
+                      <div className="px-3 pt-5">
+                        <h2 className="text-xl leading-tight font-extrabold text-ganache">
+                          {item.name}
+                        </h2>
+                        <p className="mt-1.5 text-[0.98rem] text-cacao">
+                          {item.description}
+                        </p>
+                        <p className="mt-3 text-sm text-cacao">
+                          <span className="font-bold text-ganache">
+                            {item.flavors.length} parfums
+                          </span>{" "}
+                          : {item.flavors.join(", ")}
+                        </p>
+                      </div>
+                      <div className="mt-auto px-3 pt-5">
+                        <button
+                          type="button"
+                          onClick={() => openConfigModal(item)}
+                          className="btn btn-primary shine w-full"
+                        >
+                          Choisir le parfum
+                        </button>
+                      </div>
+                    </TiltCard>
+                  </motion.article>
+                ))}
+              </AnimatePresence>
+            </motion.div>
           </section>
 
           <aside id="panier" className="surface p-6 xl:sticky xl:top-28">
@@ -1099,59 +1175,87 @@ function CommanderPageContent() {
               </p>
             ) : (
               <ul className="mt-4 divide-y divide-line">
-                {cartItems.map((item) => (
-                  <li key={item.key} className="flex items-center gap-3 py-3">
-                    <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl">
-                      <Image
-                        src={item.image}
-                        alt=""
-                        fill
-                        sizes="56px"
-                        className="object-cover"
-                      />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-bold text-ganache">
-                        {item.name}
-                      </p>
-                      <p className="truncate text-sm text-cacao">
-                        {item.flavor}
-                      </p>
-                      <p className="text-sm font-bold tabular-nums">
-                        {formatPrice(item.total)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => decreaseCartQty(item.key)}
-                        className="btn btn-soft h-8! min-h-8! w-8 p-0!"
-                        aria-label={`Retirer un ${item.name}`}
-                      >
-                        −
-                      </button>
-                      <span className="w-6 text-center font-bold tabular-nums">
-                        {item.qty}
+                <AnimatePresence initial={false}>
+                  {cartItems.map((item) => (
+                    <motion.li
+                      key={item.key}
+                      layout
+                      initial={
+                        reduce ? false : { opacity: 0, x: 40, height: 0 }
+                      }
+                      animate={{ opacity: 1, x: 0, height: "auto" }}
+                      exit={{ opacity: 0, x: -40, height: 0 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30,
+                      }}
+                      className="flex items-center gap-3 overflow-hidden py-3"
+                    >
+                      <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl">
+                        <Image
+                          src={item.image}
+                          alt=""
+                          fill
+                          sizes="56px"
+                          className="object-cover"
+                        />
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => increaseCartQty(item.key)}
-                        className="btn btn-primary h-8! min-h-8! w-8 p-0! shadow-none!"
-                        aria-label={`Ajouter un ${item.name}`}
-                      >
-                        +
-                      </button>
-                    </div>
-                  </li>
-                ))}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-bold text-ganache">
+                          {item.name}
+                        </p>
+                        <p className="truncate text-sm text-cacao">
+                          {item.flavor}
+                        </p>
+                        <p className="text-sm font-bold tabular-nums">
+                          {formatPrice(item.total)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => decreaseCartQty(item.key)}
+                          className="btn btn-soft h-8! min-h-8! w-8 p-0!"
+                          aria-label={`Retirer un ${item.name}`}
+                        >
+                          −
+                        </button>
+                        <motion.span
+                          key={item.qty}
+                          initial={
+                            reduce ? false : { scale: 1.6, color: "#c8174f" }
+                          }
+                          animate={{ scale: 1, color: "#3b1d17" }}
+                          className="w-6 text-center font-bold tabular-nums"
+                        >
+                          {item.qty}
+                        </motion.span>
+                        <button
+                          type="button"
+                          onClick={() => increaseCartQty(item.key)}
+                          className="btn btn-primary h-8! min-h-8! w-8 p-0! shadow-none!"
+                          aria-label={`Ajouter un ${item.name}`}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </motion.li>
+                  ))}
+                </AnimatePresence>
               </ul>
             )}
 
             <div className="mt-4 flex items-center justify-between border-t-2 border-ganache pt-4">
               <span className="font-bold">Sous-total</span>
-              <span className="text-xl font-extrabold tabular-nums">
+              <motion.span
+                key={subtotal}
+                initial={reduce ? false : { y: -10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="text-xl font-extrabold tabular-nums"
+              >
                 {formatPrice(subtotal)}
-              </span>
+              </motion.span>
             </div>
             <p className="mt-1 text-sm text-cacao">
               Frais de livraison calculés selon votre ville à l&apos;étape
@@ -1161,7 +1265,7 @@ function CommanderPageContent() {
             <Link
               href="/checkout"
               aria-disabled={cartItems.length === 0}
-              className={`btn btn-primary mt-5 w-full ${
+              className={`btn btn-primary shine mt-5 w-full ${
                 cartItems.length === 0 ? "pointer-events-none opacity-45" : ""
               }`}
             >
@@ -1171,287 +1275,363 @@ function CommanderPageContent() {
         </div>
       </main>
 
-      {formulaModalOpen && (
-        <div
-          className="dialog-backdrop fixed inset-0 z-[75] flex items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-6"
-          onClick={() => setFormulaModalOpen(false)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="formula-dialog-title"
-            className="dialog-panel grid max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl grid-cols-1 overflow-y-auto rounded-[2rem] bg-chantilly lg:max-h-[calc(100dvh-3rem)] lg:grid-cols-[1.1fr_.9fr] lg:overflow-hidden"
-            onClick={(event) => event.stopPropagation()}
+      <AnimatePresence>
+        {formulaModalOpen && (
+          <motion.div
+            key="formula"
+            className="fixed inset-0 z-[75] flex items-start justify-center overflow-y-auto bg-ganache/55 p-3 backdrop-blur-[3px] sm:items-center sm:p-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setFormulaModalOpen(false)}
           >
-            <div className="p-6 sm:p-8 lg:overflow-y-auto">
-              <div className="flex items-start justify-between gap-3">
-                <h2 id="formula-dialog-title" className="display-md">
-                  Composez votre box
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setFormulaModalOpen(false)}
-                  className="btn btn-soft btn-round"
-                  aria-label="Fermer"
-                >
-                  ×
-                </button>
-              </div>
+            <motion.div
+              initial={reduce ? false : { opacity: 0, y: 60, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 40, scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 260, damping: 26 }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="formula-dialog-title"
+              className="grid max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl grid-cols-1 overflow-y-auto rounded-[2rem] bg-chantilly lg:max-h-[calc(100dvh-3rem)] lg:grid-cols-[1.1fr_.9fr] lg:overflow-hidden"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="p-6 sm:p-8 lg:overflow-y-auto">
+                <div className="flex items-start justify-between gap-3">
+                  <h2 id="formula-dialog-title" className="display-md">
+                    Composez votre box
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => setFormulaModalOpen(false)}
+                    className="btn btn-soft btn-round"
+                    aria-label="Fermer"
+                  >
+                    ×
+                  </button>
+                </div>
 
-              <p className="mt-2 text-cacao">
-                Une ligne par produit : choisissez le parfum et la quantité.
-              </p>
+                <p className="mt-2 text-cacao">
+                  Une ligne par produit : choisissez le parfum et la quantité.
+                </p>
 
-              <div className="mt-6 space-y-3">
-                {formulaRows.map((row, index) => {
-                  const product = productCatalog.find(
-                    (item) => item.id === row.productId,
-                  );
-                  const flavors = product?.flavors ?? [];
-                  return (
-                    <div
-                      key={`formula-row-${index}`}
-                      className="grid grid-cols-[1fr_5rem_2.5rem] gap-2 rounded-2xl bg-lait-fraise p-3 md:grid-cols-[1.3fr_1.1fr_5rem_2.5rem]"
-                    >
-                      <label className="col-span-3 md:col-span-1">
-                        <span className="sr-only">Produit</span>
-                        <select
-                          value={row.productId}
-                          onChange={(event) =>
-                            updateFormulaProduct(index, event.target.value)
-                          }
-                          className="field mt-0! font-semibold"
-                        >
-                          {productCatalog
-                            .filter((item) => item.category !== "Box")
-                            .map((item) => (
-                              <option key={item.id} value={item.id}>
-                                {item.name}
+                <div className="mt-6 space-y-3">
+                  {formulaRows.map((row, index) => {
+                    const product = productCatalog.find(
+                      (item) => item.id === row.productId,
+                    );
+                    const flavors = product?.flavors ?? [];
+                    return (
+                      <motion.div
+                        key={`formula-row-${index}`}
+                        layout
+                        initial={
+                          reduce ? false : { opacity: 0, y: -12, scale: 0.97 }
+                        }
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 320,
+                          damping: 26,
+                        }}
+                        className="grid grid-cols-[1fr_5rem_2.5rem] gap-2 rounded-2xl bg-lait-fraise p-3 md:grid-cols-[1.3fr_1.1fr_5rem_2.5rem]"
+                      >
+                        <label className="col-span-3 md:col-span-1">
+                          <span className="sr-only">Produit</span>
+                          <select
+                            value={row.productId}
+                            onChange={(event) =>
+                              updateFormulaProduct(index, event.target.value)
+                            }
+                            className="field mt-0! font-semibold"
+                          >
+                            {productCatalog
+                              .filter((item) => item.category !== "Box")
+                              .map((item) => (
+                                <option key={item.id} value={item.id}>
+                                  {item.name}
+                                </option>
+                              ))}
+                          </select>
+                        </label>
+
+                        <label>
+                          <span className="sr-only">Parfum</span>
+                          <select
+                            value={row.flavor}
+                            onChange={(event) =>
+                              updateFormulaFlavor(index, event.target.value)
+                            }
+                            className="field mt-0!"
+                          >
+                            {flavors.map((flavor) => (
+                              <option key={flavor} value={flavor}>
+                                {flavor}
                               </option>
                             ))}
-                        </select>
-                      </label>
+                          </select>
+                        </label>
 
-                      <label>
-                        <span className="sr-only">Parfum</span>
-                        <select
-                          value={row.flavor}
-                          onChange={(event) =>
-                            updateFormulaFlavor(index, event.target.value)
-                          }
-                          className="field mt-0!"
+                        <label>
+                          <span className="sr-only">Quantité</span>
+                          <input
+                            type="number"
+                            min={0}
+                            max={30}
+                            value={row.qty}
+                            onChange={(event) =>
+                              updateFormulaQty(
+                                index,
+                                Number(event.target.value),
+                              )
+                            }
+                            className="field mt-0! text-center font-bold"
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => removeFormulaRow(index)}
+                          className="rounded-xl text-xl font-bold text-cacao hover:bg-white hover:text-framboise"
+                          aria-label="Retirer cette ligne"
                         >
-                          {flavors.map((flavor) => (
-                            <option key={flavor} value={flavor}>
-                              {flavor}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-
-                      <label>
-                        <span className="sr-only">Quantité</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={30}
-                          value={row.qty}
-                          onChange={(event) =>
-                            updateFormulaQty(index, Number(event.target.value))
-                          }
-                          className="field mt-0! text-center font-bold"
-                        />
-                      </label>
-
-                      <button
-                        type="button"
-                        onClick={() => removeFormulaRow(index)}
-                        className="rounded-xl text-xl font-bold text-cacao hover:bg-white hover:text-framboise"
-                        aria-label="Retirer cette ligne"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="mt-5 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={addFormulaRow}
-                  className="btn btn-outline btn-sm"
-                >
-                  + Ajouter un produit
-                </button>
-                <button
-                  type="button"
-                  onClick={addFormulaToCart}
-                  className="btn btn-primary"
-                >
-                  Ajouter la box au panier
-                </button>
-              </div>
-
-              {formulaFeedback && (
-                <p
-                  className="mt-4 font-semibold text-pistache-deep"
-                  role="status"
-                >
-                  {formulaFeedback}
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col justify-center bg-lait-fraise p-6 sm:p-8">
-              <p className="text-sm font-semibold text-cacao">
-                Aperçu de votre box
-              </p>
-              <p className="mt-1 text-4xl font-extrabold tabular-nums">
-                {formatPrice(formulaTotal)}
-              </p>
-              <FormulaBox3DPreview rows={formulaRows} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {modalOpen && selectedProduct && (
-        <div
-          className="dialog-backdrop fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-6"
-          onClick={() => setModalOpen(false)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="config-dialog-title"
-            className="dialog-panel grid max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl grid-cols-1 overflow-y-auto rounded-[2rem] bg-chantilly lg:max-h-[calc(100dvh-3rem)] lg:grid-cols-2 lg:overflow-hidden"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="p-6 sm:p-8 lg:overflow-y-auto">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <span className="chip chip-framboise">
-                    {selectedProduct.category}
-                  </span>
-                  <h2 id="config-dialog-title" className="display-md mt-3">
-                    {selectedProduct.name}
-                  </h2>
+                          ×
+                        </button>
+                      </motion.div>
+                    );
+                  })}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="btn btn-soft btn-round"
-                  aria-label="Fermer"
-                >
-                  ×
-                </button>
-              </div>
 
-              <p className="mt-2 text-cacao">{selectedProduct.description}</p>
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={addFormulaRow}
+                    className="btn btn-outline btn-sm"
+                  >
+                    + Ajouter un produit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={addFormulaToCart}
+                    className="btn btn-primary shine"
+                  >
+                    Ajouter la box au panier
+                  </button>
+                </div>
 
-              <fieldset className="mt-6">
-                <legend className="field-label">Parfum</legend>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {selectedProduct.flavors.map((flavor) => (
-                    <button
-                      key={flavor}
-                      type="button"
-                      className="tab"
-                      aria-pressed={modalFlavor === flavor}
-                      onClick={() => setModalFlavor(flavor)}
+                <AnimatePresence mode="wait">
+                  {formulaFeedback && (
+                    <motion.p
+                      key={formulaFeedback + formulaTotal}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="mt-4 rounded-2xl bg-pistache px-4 py-3 font-semibold text-pistache-deep"
+                      role="status"
                     >
-                      {flavor}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
+                      {formulaFeedback}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
 
-              <div className="mt-6">
-                <p className="field-label" id="qty-label">
-                  Quantité
+              <div className="flex flex-col justify-center bg-lait-fraise p-6 sm:p-8">
+                <p className="text-sm font-semibold text-cacao">
+                  Aperçu de votre box
                 </p>
-                <div
-                  className="mt-2 flex items-center gap-2"
-                  role="group"
-                  aria-labelledby="qty-label"
+                <motion.p
+                  key={formulaTotal}
+                  initial={reduce ? false : { scale: 1.15, color: "#c8174f" }}
+                  animate={{ scale: 1, color: "#3b1d17" }}
+                  className="mt-1 origin-left text-4xl font-extrabold tabular-nums"
                 >
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setModalQty((value) => Math.max(1, value - 1))
-                    }
-                    className="btn btn-soft btn-round"
-                    aria-label="Diminuer la quantité"
-                  >
-                    −
-                  </button>
-                  <input
-                    type="number"
-                    min={1}
-                    max={30}
-                    value={modalQty}
-                    aria-label="Quantité"
-                    onChange={(event) => {
-                      const value = Number(event.target.value);
-                      setModalQty(
-                        Number.isNaN(value)
-                          ? 1
-                          : Math.min(30, Math.max(1, value)),
-                      );
-                    }}
-                    className="field mt-0! w-20 text-center font-bold"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setModalQty((value) => Math.min(30, value + 1))
-                    }
-                    className="btn btn-primary btn-round shadow-none!"
-                    aria-label="Augmenter la quantité"
-                  >
-                    +
-                  </button>
-                </div>
+                  {formatPrice(formulaTotal)}
+                </motion.p>
+                <FormulaBox3DPreview rows={formulaRows} />
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-              <div className="mt-8 flex items-center justify-between gap-4 border-t-2 border-ganache pt-5">
-                <div>
-                  <p className="text-sm text-cacao">
-                    {modalQty} × {modalFlavor}
-                  </p>
-                  <p className="text-2xl font-extrabold tabular-nums">
-                    {formatPrice(selectedProduct.price * modalQty)}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={confirmModalSelection}
-                  className="btn btn-primary"
-                >
-                  Ajouter au panier
-                </button>
-              </div>
-            </div>
-
-            <div
-              className={`relative flex flex-col justify-center bg-gradient-to-br p-6 sm:p-8 ${getPreviewOverlay(selectedProduct.category)}`}
+      <AnimatePresence>
+        {modalOpen && selectedProduct && (
+          <motion.div
+            key="config"
+            className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-ganache/55 p-3 backdrop-blur-[3px] sm:items-center sm:p-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setModalOpen(false)}
+          >
+            <motion.div
+              initial={reduce ? false : { opacity: 0, y: 60, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 40, scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 260, damping: 26 }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="config-dialog-title"
+              className="grid max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl grid-cols-1 overflow-y-auto rounded-[2rem] bg-chantilly lg:max-h-[calc(100dvh-3rem)] lg:grid-cols-2 lg:overflow-hidden"
+              onClick={(event) => event.stopPropagation()}
             >
-              <p className="text-sm font-semibold text-cacao">
-                Aperçu en direct
-              </p>
-              <p className="display-md mt-1">
-                {modalQty} {modalQty > 1 ? "pièces" : "pièce"}
-              </p>
-              <Dynamic3DPreview
-                product={selectedProduct}
-                flavor={modalFlavor}
-                qty={modalQty}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="p-6 sm:p-8 lg:overflow-y-auto">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <span className="chip chip-framboise">
+                      {selectedProduct.category}
+                    </span>
+                    <h2 id="config-dialog-title" className="display-md mt-3">
+                      {selectedProduct.name}
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    className="btn btn-soft btn-round"
+                    aria-label="Fermer"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <p className="mt-2 text-cacao">{selectedProduct.description}</p>
+
+                <fieldset className="mt-6">
+                  <legend className="field-label">Parfum</legend>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {selectedProduct.flavors.map((flavor) => (
+                      <button
+                        key={flavor}
+                        type="button"
+                        className={`relative isolate rounded-full px-4 py-2 text-[0.95rem] font-bold shadow-[inset_0_0_0_1.5px_var(--line)] transition-colors duration-300 ${
+                          modalFlavor === flavor
+                            ? "text-chantilly"
+                            : "text-ganache hover:shadow-[inset_0_0_0_1.5px_var(--ganache)]"
+                        }`}
+                        aria-pressed={modalFlavor === flavor}
+                        onClick={() => setModalFlavor(flavor)}
+                      >
+                        {modalFlavor === flavor && (
+                          <motion.span
+                            layoutId="flavor-pill"
+                            className="absolute inset-0 -z-10 rounded-full bg-ganache"
+                            transition={{
+                              type: "spring",
+                              stiffness: 420,
+                              damping: 30,
+                            }}
+                          />
+                        )}
+                        {flavor}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <div className="mt-6">
+                  <p className="field-label" id="qty-label">
+                    Quantité
+                  </p>
+                  <div
+                    className="mt-2 flex items-center gap-2"
+                    role="group"
+                    aria-labelledby="qty-label"
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setModalQty((value) => Math.max(1, value - 1))
+                      }
+                      className="btn btn-soft btn-round"
+                      aria-label="Diminuer la quantité"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      max={30}
+                      value={modalQty}
+                      aria-label="Quantité"
+                      onChange={(event) => {
+                        const value = Number(event.target.value);
+                        setModalQty(
+                          Number.isNaN(value)
+                            ? 1
+                            : Math.min(30, Math.max(1, value)),
+                        );
+                      }}
+                      className="field mt-0! w-20 text-center font-bold"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setModalQty((value) => Math.min(30, value + 1))
+                      }
+                      className="btn btn-primary btn-round shadow-none!"
+                      aria-label="Augmenter la quantité"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex items-center justify-between gap-4 border-t-2 border-ganache pt-5">
+                  <div>
+                    <p className="text-sm text-cacao">
+                      {modalQty} × {modalFlavor}
+                    </p>
+                    <motion.p
+                      key={modalQty}
+                      initial={reduce ? false : { y: -10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      className="text-2xl font-extrabold tabular-nums"
+                    >
+                      {formatPrice(selectedProduct.price * modalQty)}
+                    </motion.p>
+                  </div>
+                  <Magnetic>
+                    <button
+                      type="button"
+                      onClick={confirmModalSelection}
+                      className="btn btn-primary shine"
+                    >
+                      Ajouter au panier
+                    </button>
+                  </Magnetic>
+                </div>
+              </div>
+
+              <div
+                ref={previewRef}
+                className={`relative flex flex-col justify-center bg-gradient-to-br p-6 sm:p-8 ${getPreviewOverlay(selectedProduct.category)}`}
+              >
+                <p className="text-sm font-semibold text-cacao">
+                  Aperçu en direct
+                </p>
+                <p className="display-md mt-1">
+                  {modalQty} {modalQty > 1 ? "pièces" : "pièce"}
+                </p>
+                <motion.div
+                  key={`${modalFlavor}-${modalQty}`}
+                  initial={
+                    reduce ? false : { scale: 0.9, rotate: -3, opacity: 0.4 }
+                  }
+                  animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 380, damping: 14 }}
+                >
+                  <Dynamic3DPreview
+                    product={selectedProduct}
+                    flavor={modalFlavor}
+                    qty={modalQty}
+                  />
+                </motion.div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

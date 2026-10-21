@@ -86,7 +86,8 @@ export const productCatalog: Product[] = [
   {
     id: "layer-cake-signature",
     name: "Layer Cake Signature",
-    description: "Gâteau à étages ultra moelleux, crème légère et fruits frais.",
+    description:
+      "Gâteau à étages ultra moelleux, crème légère et fruits frais.",
     price: 48,
     tag: "Layer cake",
     category: "Gâteaux",
