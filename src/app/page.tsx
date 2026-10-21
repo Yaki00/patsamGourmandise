@@ -32,6 +32,12 @@ import {
 } from "@/components/fx";
 import { useCart } from "@/context/cart-context";
 import { flyToCart, sprinkleBurst } from "@/lib/sprinkles";
+import { QtyStepper } from "@/components/qty-stepper";
+import {
+  Dynamic3DPreview,
+  getPackSize,
+  getPreviewOverlay,
+} from "@/components/product-preview";
 
 const catalog = productCatalog;
 const byId = (id: string) =>
@@ -476,6 +482,9 @@ function Vitrine({ onOpen }: { onOpen: (product: Product) => void }) {
                       <h3 className="text-xl leading-tight font-extrabold text-ganache transition-colors group-hover:text-framboise">
                         {item.name}
                       </h3>
+                      <p className="mt-0.5 text-sm font-bold text-framboise first-letter:uppercase">
+                        {item.unit}
+                      </p>
                       <p className="mt-1.5 text-[0.98rem] text-cacao">
                         {item.description}
                       </p>
@@ -597,8 +606,13 @@ function BestSellers() {
                     {item.description}
                   </span>
                 </span>
-                <span className="text-lg font-extrabold tabular-nums text-ganache">
-                  {formatPrice(item.price)}
+                <span className="text-right">
+                  <span className="block text-lg font-extrabold tabular-nums text-ganache">
+                    {formatPrice(item.price)}
+                  </span>
+                  <span className="block text-xs font-semibold text-cacao">
+                    {item.unit.split(",")[0]}
+                  </span>
                 </span>
               </Link>
             </motion.li>
@@ -866,15 +880,24 @@ function ProductDialog({
   onClose: () => void;
 }) {
   const { addItem } = useCart();
+  const reduce = useReducedMotion();
   const [flavor, setFlavor] = useState(product.flavors[0] ?? "Classique");
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
-  const photoRef = useRef<HTMLDivElement>(null);
+  // La photo s'affiche à l'ouverture, le présentoir dès qu'on compose.
+  const [view, setView] = useState<"photo" | "stand">("photo");
+  const visualRef = useRef<HTMLDivElement>(null);
+
+  const compose = (update: () => void) => {
+    update();
+    setView("stand");
+    setAdded(false);
+  };
 
   const add = (event: React.MouseEvent<HTMLButtonElement>) => {
     addItem({ productId: product.id, flavor, qty });
     const rect =
-      photoRef.current?.getBoundingClientRect() ??
+      visualRef.current?.getBoundingClientRect() ??
       event.currentTarget.getBoundingClientRect();
     sprinkleBurst(event.clientX, event.clientY);
     flyToCart(rect, product.image);
@@ -893,31 +916,105 @@ function ProductDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-dialog-title"
-        className="grid w-full max-w-4xl overflow-hidden rounded-[2rem] bg-chantilly shadow-2xl sm:grid-cols-[1fr_1.05fr]"
+        className="grid w-full max-w-5xl rounded-[2rem] bg-chantilly shadow-2xl max-sm:my-auto sm:grid-cols-[1fr_1.05fr] sm:overflow-hidden"
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 40 }}
         transition={{ type: "spring", stiffness: 260, damping: 28 }}
         onClick={(event) => event.stopPropagation()}
       >
-        <motion.div
-          ref={photoRef}
-          layoutId={`photo-${product.id}`}
-          className="relative aspect-[4/3] sm:aspect-auto sm:min-h-[30rem]"
+        {/* Visuel : photo ou présentoir */}
+        <div
+          ref={visualRef}
+          className="relative min-h-[26rem] overflow-hidden rounded-t-[2rem] sm:min-h-[34rem] sm:rounded-t-none"
         >
-          <Image
-            src={product.image}
-            alt={product.name}
-            fill
-            sizes="(min-width: 640px) 440px, 100vw"
-            className="object-cover"
-          />
-          <span className="price-tag absolute bottom-6 left-0 text-lg">
-            {formatPrice(product.price)}
-          </span>
-        </motion.div>
+          <motion.div
+            layoutId={`photo-${product.id}`}
+            className="absolute inset-0"
+            animate={{
+              opacity: view === "photo" ? 1 : 0,
+              scale: view === "photo" ? 1 : 1.08,
+            }}
+            transition={{ duration: 0.5, ease: easeOut }}
+          >
+            <Image
+              src={product.image}
+              alt={product.name}
+              fill
+              sizes="(min-width: 640px) 480px, 100vw"
+              className="object-cover"
+            />
+            <span className="price-tag absolute bottom-6 left-0 text-lg">
+              {formatPrice(product.price)}
+            </span>
+          </motion.div>
+
+          <AnimatePresence>
+            {view === "stand" && (
+              <motion.div
+                key="stand"
+                className={`absolute inset-0 flex flex-col justify-end bg-gradient-to-br p-5 sm:p-7 ${getPreviewOverlay(product.category)}`}
+                initial={
+                  reduce
+                    ? { opacity: 0 }
+                    : { clipPath: "circle(0% at 50% 100%)" }
+                }
+                animate={
+                  reduce
+                    ? { opacity: 1 }
+                    : { clipPath: "circle(150% at 50% 100%)" }
+                }
+                exit={
+                  reduce
+                    ? { opacity: 0 }
+                    : { clipPath: "circle(0% at 50% 100%)" }
+                }
+                transition={{ duration: 0.6, ease: [0.7, 0, 0.2, 1] }}
+              >
+                <p className="font-display mb-auto pt-12 text-3xl text-ganache sm:text-4xl">
+                  {flavor}
+                </p>
+                <Dynamic3DPreview product={product} flavor={flavor} qty={qty} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Interrupteur photo / présentoir */}
+          <div
+            className="absolute top-4 left-4 z-20 flex rounded-full bg-white/85 p-1 text-sm font-bold shadow-lg backdrop-blur"
+            role="group"
+            aria-label="Affichage"
+          >
+            {(
+              [
+                ["photo", "Photo"],
+                ["stand", "Présentoir"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={view === id}
+                onClick={() => setView(id)}
+                className={`relative isolate rounded-full px-3.5 py-1.5 transition-colors ${
+                  view === id ? "text-chantilly" : "text-ganache"
+                }`}
+              >
+                {view === id && (
+                  <motion.span
+                    layoutId="view-pill"
+                    className="absolute inset-0 -z-10 rounded-full bg-ganache"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                  />
+                )}
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <motion.div
-          className="p-6 sm:p-8"
+          className="flex flex-col p-6 sm:max-h-[min(44rem,calc(100dvh-3rem))] sm:overflow-y-auto sm:p-8"
           initial="hidden"
           animate="show"
           variants={{
@@ -950,21 +1047,45 @@ function ProductDialog({
           <motion.p variants={item} className="mt-2 text-cacao">
             {product.description}
           </motion.p>
+          <motion.p
+            variants={item}
+            className="mt-2 text-sm font-semibold text-ganache"
+          >
+            {formatPrice(product.price)} {product.unit}
+          </motion.p>
 
           <motion.fieldset variants={item} className="mt-5">
             <legend className="field-label">Parfum</legend>
             <div className="mt-2 flex flex-wrap gap-2">
-              {product.flavors.map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className="tab"
-                  aria-pressed={flavor === value}
-                  onClick={() => setFlavor(value)}
-                >
-                  {value}
-                </button>
-              ))}
+              {product.flavors.map((value) => {
+                const active = flavor === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => compose(() => setFlavor(value))}
+                    className={`relative isolate rounded-full px-4 py-2 text-[0.95rem] font-bold shadow-[inset_0_0_0_1.5px_var(--line)] transition-colors duration-300 ${
+                      active
+                        ? "text-chantilly"
+                        : "text-ganache hover:shadow-[inset_0_0_0_1.5px_var(--ganache)]"
+                    }`}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="home-flavor-pill"
+                        className="absolute inset-0 -z-10 rounded-full bg-ganache"
+                        transition={{
+                          type: "spring",
+                          stiffness: 420,
+                          damping: 30,
+                        }}
+                      />
+                    )}
+                    {value}
+                  </button>
+                );
+              })}
             </div>
           </motion.fieldset>
 
@@ -982,67 +1103,62 @@ function ProductDialog({
             </div>
           </motion.dl>
 
+          {/* Sur mobile : barre collée en bas pour voir le présentoir en ajoutant */}
           <motion.div
             variants={item}
-            className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t-2 border-ganache pt-5"
+            className="mt-auto pt-6 max-sm:sticky max-sm:bottom-0 max-sm:z-20 max-sm:-mx-6 max-sm:-mb-6 max-sm:rounded-b-[2rem] max-sm:bg-chantilly max-sm:px-6 max-sm:pb-5 max-sm:shadow-[0_-14px_24px_-18px_rgba(59,29,23,.5)]"
           >
-            <div
-              className="flex items-center gap-2"
-              role="group"
-              aria-label="Quantité"
-            >
-              <button
-                type="button"
-                className="btn btn-soft btn-round"
-                aria-label="Diminuer"
-                onClick={() => setQty((v) => Math.max(1, v - 1))}
-              >
-                −
-              </button>
-              <AnimatePresence mode="popLayout" initial={false}>
-                <motion.span
-                  key={qty}
-                  initial={{ y: 12, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: -12, opacity: 0 }}
-                  className="w-8 text-center text-xl font-extrabold tabular-nums"
-                >
-                  {qty}
-                </motion.span>
-              </AnimatePresence>
-              <button
-                type="button"
-                className="btn btn-primary btn-round shadow-none!"
-                aria-label="Augmenter"
-                onClick={() => setQty((v) => Math.min(30, v + 1))}
-              >
-                +
-              </button>
+            <p className="field-label max-sm:sr-only" id="home-qty-label">
+              Quantité
+            </p>
+            <div className="mt-2">
+              <QtyStepper
+                value={qty}
+                onChange={(next) => compose(() => setQty(next))}
+                packSize={getPackSize(product.category)}
+                quickPicksClassName="max-sm:hidden"
+                labelId="home-qty-label"
+              />
             </div>
-            <button
-              type="button"
-              onClick={add}
-              className="btn btn-primary shine"
-            >
-              Ajouter pour {formatPrice(product.price * qty)}
-            </button>
-          </motion.div>
-
-          <AnimatePresence>
-            {added && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t-2 border-ganache pt-4">
               <motion.p
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-pistache px-4 py-3 font-semibold text-pistache-deep"
-                role="status"
+                key={qty}
+                initial={reduce ? false : { y: -10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="text-2xl font-extrabold tabular-nums"
               >
-                Ajouté au panier !
-                <Link href="/checkout" className="underline">
-                  Voir mon panier
-                </Link>
+                {formatPrice(product.price * qty)}
               </motion.p>
-            )}
-          </AnimatePresence>
+              <AnimatePresence mode="wait" initial={false}>
+                {added ? (
+                  <motion.div
+                    key="added"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-2"
+                  >
+                    <span className="rounded-full bg-pistache px-3 py-2 text-sm font-bold text-pistache-deep">
+                      Ajouté !
+                    </span>
+                    <Link href="/checkout" className="btn btn-primary shine">
+                      Voir mon panier
+                    </Link>
+                  </motion.div>
+                ) : (
+                  <motion.button
+                    key="add"
+                    type="button"
+                    onClick={add}
+                    whileTap={{ scale: 0.95 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="btn btn-primary shine"
+                  >
+                    Ajouter au panier
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
         </motion.div>
       </motion.div>
     </motion.div>

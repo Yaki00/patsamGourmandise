@@ -3,6 +3,8 @@ export type Product = {
   name: string;
   description: string;
   price: number;
+  /** Ce que couvre le prix, affiché après lui : "3,50 € le cookie". */
+  unit: string;
   tag: string;
   category: "Cookies" | "Trompe-l'œil" | "Gâteaux" | "Box";
   flavors: string[];
@@ -15,7 +17,8 @@ export const productCatalog: Product[] = [
     id: "cookie-triple-choco",
     name: "Cookie Triple Choco",
     description: "Pépites XXL, cœur moelleux, cacao intense.",
-    price: 5.9,
+    price: 3.5,
+    unit: "le cookie",
     tag: "Best-seller",
     category: "Cookies",
     flavors: ["Triple chocolat", "Fraise", "Vanille", "Caramel beurre salé"],
@@ -27,7 +30,8 @@ export const productCatalog: Product[] = [
     id: "trompe-loeil-framboise",
     name: "Trompe-l'œil Framboise",
     description: "Finition miroir, cœur fruits rouges et vanille.",
-    price: 42,
+    price: 7.5,
+    unit: "la pièce",
     tag: "Édition limitée",
     category: "Trompe-l'œil",
     flavors: ["Framboise vanille", "Mango passion", "Pistache"],
@@ -39,7 +43,8 @@ export const productCatalog: Product[] = [
     id: "cheesecake-mango-pop",
     name: "Cheesecake Mango Pop",
     description: "Nappage mangue, crème légère et base biscuit croustillante.",
-    price: 34,
+    price: 32,
+    unit: "le gâteau, 6 à 8 parts",
     tag: "Nouveau",
     category: "Gâteaux",
     flavors: ["Mango pop", "Citron yuzu", "Vanille fruits rouges"],
@@ -51,7 +56,8 @@ export const productCatalog: Product[] = [
     id: "box-cookies-signature",
     name: "Box Cookies Signature",
     description: "6 recettes maison, pour partager (ou pas).",
-    price: 29,
+    price: 19,
+    unit: "la box de 6 cookies",
     tag: "Box",
     category: "Box",
     flavors: ["Mix chocolat", "Mix fruits secs", "Mix surprise"],
@@ -63,7 +69,8 @@ export const productCatalog: Product[] = [
     id: "entremet-pistache",
     name: "Entremets Pistache",
     description: "Biscuit fondant, crème pistache, note pralinée.",
-    price: 39,
+    price: 36,
+    unit: "l'entremets, 6 parts",
     tag: "Artisanal",
     category: "Gâteaux",
     flavors: ["Pistache praliné", "Noisette choco", "Vanille"],
@@ -74,8 +81,9 @@ export const productCatalog: Product[] = [
   {
     id: "mini-tartes-fruitees",
     name: "Mini tartes fruitées",
-    description: "Un assortiment coloré pour brunchs, fêtes et cadeaux.",
-    price: 24,
+    description: "Assortiment de 6, coloré, pour brunchs, fêtes et cadeaux.",
+    price: 16,
+    unit: "les 6 mini tartes",
     tag: "Traiteur",
     category: "Gâteaux",
     flavors: ["Fruits rouges", "Citron meringué", "Mangue coco"],
@@ -88,7 +96,8 @@ export const productCatalog: Product[] = [
     name: "Layer Cake Signature",
     description:
       "Gâteau à étages ultra moelleux, crème légère et fruits frais.",
-    price: 48,
+    price: 45,
+    unit: "le gâteau, 8 à 10 parts",
     tag: "Layer cake",
     category: "Gâteaux",
     flavors: ["Vanille fruits rouges", "Chocolat praliné", "Mango passion"],

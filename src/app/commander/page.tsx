@@ -19,8 +19,10 @@ import {
   TiltCard,
 } from "@/components/fx";
 import { flyToCart, sprinkleBurst } from "@/lib/sprinkles";
+import { QtyStepper } from "@/components/qty-stepper";
 import {
   Dynamic3DPreview,
+  getPackSize,
   FormulaBox3DPreview,
   FormulaRow,
   getPreviewOverlay,
@@ -221,20 +223,6 @@ function CommanderPageContent() {
   };
 
   const previewRef = useRef<HTMLDivElement>(null);
-  const [qtyDirection, setQtyDirection] = useState(1);
-  const changeQty = (next: number) => {
-    const value = Math.min(30, Math.max(1, next));
-    setQtyDirection(value >= modalQty ? 1 : -1);
-    setModalQty(value);
-  };
-  // Raccourcis : 1 article, 1 boîte, 2 boîtes (cookies et trompe-l'œil).
-  const packSize =
-    selectedProduct?.category === "Cookies"
-      ? 6
-      : selectedProduct?.category === "Trompe-l'œil"
-        ? 4
-        : 0;
-  const quickPicks = packSize ? [1, packSize, packSize * 2] : [];
   const reduce = useReducedMotion();
 
   const decreaseCartQty = (key: string) => {
@@ -339,7 +327,7 @@ function CommanderPageContent() {
                 </div>
                 <div className="flex flex-col justify-center p-6 sm:p-8">
                   <p className="chip w-fit bg-chantilly!">
-                    À partir de 29,00 €
+                    Prix selon la composition
                   </p>
                   <h2 className="display-md mt-3 text-pistache-deep!">
                     La box à composer
@@ -399,6 +387,9 @@ function CommanderPageContent() {
                         <h2 className="text-xl leading-tight font-extrabold text-ganache">
                           {item.name}
                         </h2>
+                        <p className="mt-0.5 text-sm font-bold text-framboise first-letter:uppercase">
+                          {item.unit}
+                        </p>
                         <p className="mt-1.5 text-[0.98rem] text-cacao">
                           {item.description}
                         </p>
@@ -798,83 +789,14 @@ function CommanderPageContent() {
                     <p className="field-label max-lg:sr-only" id="qty-label">
                       Quantité
                     </p>
-                    <div className="mt-2 flex flex-wrap items-center gap-3 max-lg:mt-0">
-                      <div
-                        className="inline-flex items-center gap-1 rounded-full bg-white p-1 shadow-[inset_0_0_0_1.5px_var(--line)]"
-                        role="group"
-                        aria-labelledby="qty-label"
-                      >
-                        <motion.button
-                          type="button"
-                          whileTap={{ scale: 0.8 }}
-                          onClick={() => changeQty(modalQty - 1)}
-                          disabled={modalQty <= 1}
-                          className="grid h-11 w-11 place-items-center rounded-full text-2xl font-bold text-ganache transition-colors hover:bg-lait-fraise disabled:opacity-30"
-                          aria-label="Retirer un article"
-                        >
-                          −
-                        </motion.button>
-                        <span
-                          className="relative grid h-11 w-14 place-items-center overflow-hidden text-2xl font-extrabold tabular-nums"
-                          aria-live="polite"
-                        >
-                          <AnimatePresence
-                            mode="popLayout"
-                            initial={false}
-                            custom={qtyDirection}
-                          >
-                            <motion.span
-                              key={modalQty}
-                              custom={qtyDirection}
-                              variants={{
-                                enter: (dir: number) => ({
-                                  y: dir > 0 ? 28 : -28,
-                                  opacity: 0,
-                                }),
-                                center: { y: 0, opacity: 1 },
-                                leave: (dir: number) => ({
-                                  y: dir > 0 ? -28 : 28,
-                                  opacity: 0,
-                                }),
-                              }}
-                              initial="enter"
-                              animate="center"
-                              exit="leave"
-                              transition={{
-                                type: "spring",
-                                stiffness: 500,
-                                damping: 32,
-                              }}
-                            >
-                              {modalQty}
-                            </motion.span>
-                          </AnimatePresence>
-                        </span>
-                        <motion.button
-                          type="button"
-                          whileTap={{ scale: 0.8 }}
-                          onClick={() => changeQty(modalQty + 1)}
-                          disabled={modalQty >= 30}
-                          className="grid h-11 w-11 place-items-center rounded-full bg-framboise text-2xl font-bold text-white transition-colors hover:bg-framboise-deep disabled:opacity-30"
-                          aria-label="Ajouter un article"
-                        >
-                          +
-                        </motion.button>
-                      </div>
-                      {quickPicks.map((value) => (
-                        <motion.button
-                          key={value}
-                          type="button"
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => changeQty(value)}
-                          aria-pressed={modalQty === value}
-                          className="rounded-full px-3.5 py-2 text-sm font-bold max-lg:hidden text-ganache shadow-[inset_0_0_0_1.5px_var(--line)] transition-colors hover:shadow-[inset_0_0_0_1.5px_var(--ganache)] aria-pressed:bg-ganache aria-pressed:text-chantilly"
-                        >
-                          {value === 1
-                            ? "1 seul"
-                            : `${value} (${value / quickPicks[1]} boîte${value / quickPicks[1] > 1 ? "s" : ""})`}
-                        </motion.button>
-                      ))}
+                    <div className="mt-2 max-lg:mt-0">
+                      <QtyStepper
+                        value={modalQty}
+                        onChange={setModalQty}
+                        packSize={getPackSize(selectedProduct.category)}
+                        quickPicksClassName="max-lg:hidden"
+                        labelId="qty-label"
+                      />
                     </div>
                   </div>
 

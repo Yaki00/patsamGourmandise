@@ -653,6 +653,10 @@ const PACK_SIZE: Record<Product["category"], number> = {
   Box: 1,
 };
 
+/** Taille de boîte (> 1) ou 0 si le produit ne se range pas en boîte. */
+export const getPackSize = (category: Product["category"]) =>
+  PACK_SIZE[category] > 1 ? PACK_SIZE[category] : 0;
+
 const UNIT_LABEL: Record<Product["category"], [string, string]> = {
   Cookies: ["cookie", "cookies"],
   "Trompe-l'œil": ["trompe-l'œil", "trompe-l'œil"],
