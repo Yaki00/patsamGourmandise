@@ -1,20 +1,54 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { formatPrice, productCatalog } from "@/data/products";
 import { SiteHeader } from "@/components/site-header";
 import { useCart } from "@/context/cart-context";
+import {
+  CircularText,
+  easeOut,
+  Magnetic,
+  Reveal,
+  SplitWords,
+} from "@/components/fx";
+import { sprinkleBurst } from "@/lib/sprinkles";
+
+type Zone = "A" | "B" | "C";
+
+const FREE_DELIVERY_FROM = 15;
+
+const zones: { id: Zone; label: string; detail: string }[] = [
+  { id: "A", label: "Moins de 15 km", detail: "Offerte dès 15 €, sinon 5 €" },
+  { id: "B", label: "15 à 25 km", detail: "5 €" },
+  { id: "C", label: "25 à 50 km", detail: "15 €" },
+];
+
+const payments = [
+  { id: "cb", label: "Carte bancaire à la livraison" },
+  { id: "virement", label: "Virement" },
+  { id: "especes", label: "Espèces" },
+];
+
+const REQUIRED_FIELDS = 4;
 
 export default function CheckoutPage() {
   const { entries, subtotal, setItemQty, clearCart, totalItems } = useCart();
+  const reduce = useReducedMotion();
   const [submitted, setSubmitted] = useState(false);
-  const [deliveryZone, setDeliveryZone] = useState<"A" | "B" | "C">("A");
+  const [deliveryZone, setDeliveryZone] = useState<Zone>("A");
+  const [payment, setPayment] = useState("cb");
+  const [filled, setFilled] = useState(0);
 
   const lines = useMemo(() => {
     return entries
       .map((entry) => {
-        const product = productCatalog.find((item) => item.id === entry.productId);
+        const product = productCatalog.find(
+          (item) => item.id === entry.productId,
+        );
         if (!product) return null;
         return {
           key: `${entry.productId}::${entry.flavor}`,
@@ -29,167 +63,467 @@ export default function CheckoutPage() {
 
   const delivery = useMemo(() => {
     if (subtotal <= 0) return 0;
-    if (deliveryZone === "A") return subtotal >= 15 ? 0 : 5;
+    if (deliveryZone === "A") return subtotal >= FREE_DELIVERY_FROM ? 0 : 5;
     if (deliveryZone === "B") return 5;
     return 15;
   }, [deliveryZone, subtotal]);
   const grandTotal = subtotal + delivery;
+  const missingForFree = Math.max(0, FREE_DELIVERY_FROM - subtotal);
 
-  const submitOrder = (event: FormEvent) => {
+  const submitOrder = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (lines.length === 0) return;
     clearCart();
     setSubmitted(true);
+    window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+    window.setTimeout(() => {
+      sprinkleBurst(window.innerWidth / 2, window.innerHeight * 0.35, 60);
+    }, 350);
+  };
+
+  // Compte les champs obligatoires déjà valides pour la jauge de progression.
+  const trackProgress = (event: FormEvent<HTMLFormElement>) => {
+    const fields = Array.from(
+      event.currentTarget.querySelectorAll<
+        HTMLInputElement | HTMLTextAreaElement
+      >("input[required], textarea[required]"),
+    );
+    setFilled(
+      fields.filter((field) => field.value.trim() && field.checkValidity())
+        .length,
+    );
   };
 
   return (
-    <main className="mx-auto w-[min(1100px,94%)] py-4 sm:w-[min(1100px,92%)] sm:py-14">
+    <div className="relative min-h-screen overflow-x-clip">
       <SiteHeader currentPage="checkout" />
-      <section className="glass rounded-3xl p-4 sm:p-8">
-        <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
-          Checkout
-        </p>
-        <h1 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
-          Finaliser la commande
-        </h1>
-        <p className="mt-2 text-[#735665]">
-          {totalItems} article(s) dans ton panier - livraison sur Houilles (78)
-          et alentours.
-        </p>
 
-        {submitted ? (
-          <div className="mt-6 rounded-2xl bg-[#dffce9] p-4">
-            <p className="text-base font-extrabold text-[#1f5c3b]">
-              Commande envoyee avec succes.
-            </p>
-            <p className="mt-1 text-sm text-[#2f6f4b]">
-              Merci. Nous revenons vers toi rapidement pour confirmer la
-              livraison et le paiement.
-            </p>
-            <Link href="/" className="mt-4 inline-block text-sm font-bold text-[#2b6b48]">
-              Retour a l&apos;accueil
-            </Link>
-          </div>
-        ) : (
-          <div className="mt-6 grid gap-6 lg:grid-cols-[1.25fr_.75fr]">
-            <form onSubmit={submitOrder} className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <input
-                  required
-                  placeholder="Nom complet"
-                  className="rounded-xl border border-white/80 bg-white/85 px-3 py-2 text-sm text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
-                />
-                <input
-                  required
-                  type="tel"
-                  placeholder="Telephone"
-                  className="rounded-xl border border-white/80 bg-white/85 px-3 py-2 text-sm text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
-                />
-              </div>
-              <input
-                required
-                type="email"
-                placeholder="Email"
-                className="w-full rounded-xl border border-white/80 bg-white/85 px-3 py-2 text-sm text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
+      <main className="mx-auto w-[min(1100px,92%)] pt-12 sm:pt-16">
+        <AnimatePresence mode="wait">
+          {submitted ? (
+            <motion.section
+              key="merci"
+              className="mx-auto max-w-xl py-10 text-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <motion.div
+                className="mx-auto w-fit"
+                initial={reduce ? false : { scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: -8 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 160,
+                  damping: 12,
+                  delay: 0.1,
+                }}
+              >
+                <CircularText
+                  text="MERCI ✦ MERCI ✦ MERCI ✦ "
+                  className="relative h-40 w-40 rounded-full bg-mangue text-ganache"
+                >
+                  <span className="font-display text-4xl text-framboise">
+                    ♥
+                  </span>
+                </CircularText>
+              </motion.div>
+              <SplitWords
+                text="Commande envoyée !"
+                className="display-lg mt-8"
+                delay={0.3}
               />
-              <textarea
-                required
-                rows={4}
-                placeholder="Adresse de livraison"
-                className="w-full rounded-xl border border-white/80 bg-white/85 px-3 py-2 text-sm text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
-              />
-              <select
-                value={deliveryZone}
-                onChange={(event) =>
-                  setDeliveryZone(event.target.value as "A" | "B" | "C")
-                }
-                className="w-full rounded-xl border border-white/80 bg-white/85 px-3 py-2 text-sm text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
-              >
-                <option value="A">Zone A (jusqu&apos;a 15 km)</option>
-                <option value="B">Zone B (jusqu&apos;a 25 km)</option>
-                <option value="C">Zone C (jusqu&apos;a 50 km)</option>
-              </select>
-              <Link
-                href="/livraison/planifier"
-                className="inline-flex w-full justify-center rounded-full bg-white px-4 py-2 text-sm font-bold text-[#6d4d5a] shadow-[0_10px_24px_rgba(255,114,182,.16)] sm:w-fit"
-              >
-                Choisir mon jour et mon creneau
-              </Link>
-              <select
-                className="w-full rounded-xl border border-white/80 bg-white/85 px-3 py-2 text-sm text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
-                defaultValue="cb"
-              >
-                <option value="cb">Paiement CB a la livraison</option>
-                <option value="virement">Virement</option>
-                <option value="especes">Especes</option>
-              </select>
-              <button
-                type="submit"
-                disabled={lines.length === 0}
-                className="w-full rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-              >
-                Valider la commande
-              </button>
-            </form>
-
-            <aside className="rounded-2xl bg-white/70 p-4">
-              <h2 className="text-xl font-black text-[#4f3340]">Recap panier</h2>
-              {lines.length === 0 ? (
-                <p className="mt-3 text-sm text-[#7a5d6a]">
-                  Ton panier est vide. Retourne sur la page commander.
+              <Reveal delay={0.6} y={20}>
+                <p className="lede mx-auto mt-4">
+                  On vous rappelle très vite pour confirmer le créneau de
+                  livraison et le paiement. Gardez votre téléphone à portée de
+                  main.
                 </p>
-              ) : (
-                <ul className="mt-3 space-y-2">
-                  {lines.map((line) => (
-                    <li key={line.key} className="rounded-xl bg-white/80 p-3 text-sm text-[#5f434f]">
-                      <p className="font-bold">{line.product.name}</p>
-                      <p className="text-xs">Parfum : {line.flavor}</p>
-                      <p className="text-xs">
-                        {line.qty} x {formatPrice(line.product.price)} ={" "}
-                        <span className="font-bold">{formatPrice(line.total)}</span>
-                      </p>
-                      <div className="mt-2 flex items-center gap-2">
-                        <button
-                          type="button"
-                          className="h-7 w-7 rounded-full bg-white font-black text-[#734d5f]"
-                          onClick={() =>
-                            setItemQty(line.product.id, line.flavor, line.qty - 1)
-                          }
-                        >
-                          -
-                        </button>
-                        <button
-                          type="button"
-                          className="h-7 w-7 rounded-full bg-[#ff72b6] font-black text-white"
-                          onClick={() =>
-                            setItemQty(line.product.id, line.flavor, line.qty + 1)
-                          }
-                        >
-                          +
-                        </button>
+                <Magnetic>
+                  <Link href="/" className="btn btn-primary shine mt-8 px-7">
+                    Retour à l&apos;accueil
+                  </Link>
+                </Magnetic>
+              </Reveal>
+            </motion.section>
+          ) : (
+            <motion.div key="form" exit={{ opacity: 0, y: -20 }}>
+              <section className="mb-10">
+                <SplitWords
+                  text="Finaliser la commande"
+                  className="display-lg"
+                />
+                <Reveal delay={0.3} y={16}>
+                  <p className="lede mt-3">
+                    {totalItems} article(s) dans votre panier. Livraison à
+                    Houilles (78) et jusqu&apos;à 50 km.
+                  </p>
+                </Reveal>
+              </section>
+
+              <div className="grid items-start gap-8 lg:grid-cols-[1fr_24rem]">
+                <Reveal y={30}>
+                  <form
+                    onSubmit={submitOrder}
+                    onInput={trackProgress}
+                    className="surface grid gap-10 p-6 sm:p-8"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between text-sm font-semibold text-cacao">
+                        <span>Vos informations</span>
+                        <span className="tabular-nums">
+                          {filled}/{REQUIRED_FIELDS}
+                        </span>
                       </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <div className="mt-4 space-y-1 border-t border-white pt-3 text-sm text-[#644653]">
-                <p className="flex justify-between">
-                  <span>Sous-total</span>
-                  <span className="font-bold">{formatPrice(subtotal)}</span>
-                </p>
-                <p className="flex justify-between">
-                  <span>Livraison (Zone {deliveryZone})</span>
-                  <span className="font-bold">{formatPrice(delivery)}</span>
-                </p>
-                <p className="flex justify-between text-base">
-                  <span className="font-extrabold">Total</span>
-                  <span className="font-extrabold">{formatPrice(grandTotal)}</span>
-                </p>
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-lait-fraise">
+                        <motion.div
+                          className="h-full rounded-full bg-gradient-to-r from-framboise to-mangue"
+                          animate={{
+                            width: `${(filled / REQUIRED_FIELDS) * 100}%`,
+                          }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 120,
+                            damping: 20,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <fieldset className="grid gap-4">
+                      <legend className="display-md mb-4">
+                        Vos coordonnées
+                      </legend>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <label className="field-label">
+                          Nom complet
+                          <input
+                            required
+                            autoComplete="name"
+                            className="field"
+                          />
+                        </label>
+                        <label className="field-label">
+                          Téléphone
+                          <input
+                            required
+                            type="tel"
+                            autoComplete="tel"
+                            className="field"
+                          />
+                        </label>
+                      </div>
+                      <label className="field-label">
+                        Email
+                        <input
+                          required
+                          type="email"
+                          autoComplete="email"
+                          className="field"
+                        />
+                      </label>
+                      <label className="field-label">
+                        Adresse de livraison
+                        <textarea
+                          required
+                          rows={3}
+                          autoComplete="street-address"
+                          className="field"
+                        />
+                      </label>
+                    </fieldset>
+
+                    <fieldset>
+                      <legend className="display-md mb-2">
+                        Distance depuis Houilles
+                      </legend>
+                      <p className="text-[0.95rem] text-cacao">
+                        Un doute ?{" "}
+                        <Link
+                          href="/livraison"
+                          className="font-bold text-framboise underline"
+                        >
+                          Vérifiez votre ville
+                        </Link>
+                        .
+                      </p>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                        {zones.map((zone) => {
+                          const active = deliveryZone === zone.id;
+                          return (
+                            <label
+                              key={zone.id}
+                              className={`relative isolate cursor-pointer rounded-2xl p-4 transition-colors duration-300 has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-framboise ${
+                                active
+                                  ? "text-chantilly"
+                                  : "bg-white shadow-[inset_0_0_0_1.5px_var(--line)] hover:shadow-[inset_0_0_0_1.5px_var(--ganache)]"
+                              }`}
+                            >
+                              {active && (
+                                <motion.span
+                                  layoutId="zone-pill"
+                                  className="absolute inset-0 -z-10 rounded-2xl bg-ganache"
+                                  transition={{
+                                    type: "spring",
+                                    stiffness: 380,
+                                    damping: 32,
+                                  }}
+                                />
+                              )}
+                              <input
+                                type="radio"
+                                name="zone"
+                                value={zone.id}
+                                checked={active}
+                                onChange={() => setDeliveryZone(zone.id)}
+                                className="sr-only"
+                              />
+                              <span className="block font-bold">
+                                {zone.label}
+                              </span>
+                              <span
+                                className={`text-sm ${active ? "text-chantilly/80" : "text-cacao"}`}
+                              >
+                                {zone.detail}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <Link
+                        href="/livraison/planifier"
+                        className="btn btn-soft btn-sm mt-4"
+                      >
+                        Choisir mon jour et mon créneau
+                      </Link>
+                    </fieldset>
+
+                    <fieldset>
+                      <legend className="display-md mb-4">Paiement</legend>
+                      <div className="flex flex-wrap gap-2">
+                        {payments.map((item) => {
+                          const active = payment === item.id;
+                          return (
+                            <label
+                              key={item.id}
+                              className={`relative isolate cursor-pointer rounded-full px-4 py-2 text-[0.95rem] font-bold transition-colors duration-300 has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-framboise ${
+                                active
+                                  ? "text-chantilly"
+                                  : "text-ganache shadow-[inset_0_0_0_1.5px_var(--line)]"
+                              }`}
+                            >
+                              {active && (
+                                <motion.span
+                                  layoutId="payment-pill"
+                                  className="absolute inset-0 -z-10 rounded-full bg-ganache"
+                                  transition={{
+                                    type: "spring",
+                                    stiffness: 420,
+                                    damping: 32,
+                                  }}
+                                />
+                              )}
+                              <input
+                                type="radio"
+                                name="payment"
+                                value={item.id}
+                                checked={active}
+                                onChange={() => setPayment(item.id)}
+                                className="sr-only"
+                              />
+                              {item.label}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
+
+                    <Magnetic strength={0.2}>
+                      <button
+                        type="submit"
+                        disabled={lines.length === 0}
+                        className="btn btn-primary shine w-full px-8 text-lg sm:w-fit"
+                      >
+                        Valider la commande ({formatPrice(grandTotal)})
+                      </button>
+                    </Magnetic>
+                  </form>
+                </Reveal>
+
+                <Reveal delay={0.15} y={30} className="lg:sticky lg:top-28">
+                  <aside className="surface p-6">
+                    <h2 className="display-md">Récapitulatif</h2>
+                    {lines.length === 0 ? (
+                      <div className="mt-4 rounded-2xl bg-lait-fraise p-4 text-[0.95rem] text-cacao">
+                        <p>Votre panier est vide.</p>
+                        <Link
+                          href="/commander"
+                          className="mt-2 inline-block font-bold text-framboise underline"
+                        >
+                          Choisir des douceurs
+                        </Link>
+                      </div>
+                    ) : (
+                      <ul className="mt-4 divide-y divide-line">
+                        <AnimatePresence initial={false}>
+                          {lines.map((line) => (
+                            <motion.li
+                              key={line.key}
+                              layout
+                              exit={{ opacity: 0, x: -40, height: 0 }}
+                              transition={{
+                                type: "spring",
+                                stiffness: 300,
+                                damping: 30,
+                              }}
+                              className="flex items-center gap-3 overflow-hidden py-3"
+                            >
+                              <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl">
+                                <Image
+                                  src={line.product.image}
+                                  alt=""
+                                  fill
+                                  sizes="56px"
+                                  className="object-cover"
+                                />
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate font-bold">
+                                  {line.product.name}
+                                </p>
+                                <p className="truncate text-sm text-cacao">
+                                  {line.flavor}
+                                </p>
+                                <p className="text-sm font-bold tabular-nums">
+                                  {formatPrice(line.total)}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  className="btn btn-soft h-8! min-h-8! w-8 p-0!"
+                                  aria-label={`Retirer un ${line.product.name}`}
+                                  onClick={() =>
+                                    setItemQty(
+                                      line.product.id,
+                                      line.flavor,
+                                      line.qty - 1,
+                                    )
+                                  }
+                                >
+                                  −
+                                </button>
+                                <motion.span
+                                  key={line.qty}
+                                  initial={
+                                    reduce
+                                      ? false
+                                      : { scale: 1.6, color: "#c8174f" }
+                                  }
+                                  animate={{ scale: 1, color: "#3b1d17" }}
+                                  className="w-6 text-center font-bold tabular-nums"
+                                >
+                                  {line.qty}
+                                </motion.span>
+                                <button
+                                  type="button"
+                                  className="btn btn-primary h-8! min-h-8! w-8 p-0! shadow-none!"
+                                  aria-label={`Ajouter un ${line.product.name}`}
+                                  onClick={() =>
+                                    setItemQty(
+                                      line.product.id,
+                                      line.flavor,
+                                      line.qty + 1,
+                                    )
+                                  }
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </motion.li>
+                          ))}
+                        </AnimatePresence>
+                      </ul>
+                    )}
+
+                    {deliveryZone === "A" && subtotal > 0 && (
+                      <div className="mt-4 rounded-2xl bg-lait-fraise p-4">
+                        <p className="text-sm font-semibold">
+                          {missingForFree > 0 ? (
+                            <>
+                              Plus que{" "}
+                              <span className="text-framboise">
+                                {formatPrice(missingForFree)}
+                              </span>{" "}
+                              pour la livraison offerte
+                            </>
+                          ) : (
+                            <>Livraison offerte, bien joué !</>
+                          )}
+                        </p>
+                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-white">
+                          <motion.div
+                            className="h-full rounded-full bg-gradient-to-r from-framboise to-mangue"
+                            initial={false}
+                            animate={{
+                              width: `${Math.min(100, (subtotal / FREE_DELIVERY_FROM) * 100)}%`,
+                            }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 100,
+                              damping: 18,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <dl className="mt-4 grid gap-1.5 border-t-2 border-ganache pt-4 text-[0.95rem]">
+                      <div className="flex justify-between">
+                        <dt>Sous-total</dt>
+                        <dd className="font-bold tabular-nums">
+                          {formatPrice(subtotal)}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt>Livraison</dt>
+                        <dd className="font-bold tabular-nums">
+                          <AnimatePresence mode="wait" initial={false}>
+                            <motion.span
+                              key={delivery}
+                              className={`inline-block ${subtotal > 0 && delivery === 0 ? "rounded-full bg-pistache px-2 text-pistache-deep" : ""}`}
+                              initial={{ y: -8, opacity: 0 }}
+                              animate={{ y: 0, opacity: 1 }}
+                              exit={{ y: 8, opacity: 0 }}
+                              transition={{ duration: 0.2, ease: easeOut }}
+                            >
+                              {subtotal > 0 && delivery === 0
+                                ? "Offerte"
+                                : formatPrice(delivery)}
+                            </motion.span>
+                          </AnimatePresence>
+                        </dd>
+                      </div>
+                      <div className="mt-2 flex items-baseline justify-between">
+                        <dt className="font-bold">Total</dt>
+                        <motion.dd
+                          key={grandTotal}
+                          initial={
+                            reduce ? false : { scale: 1.12, color: "#c8174f" }
+                          }
+                          animate={{ scale: 1, color: "#3b1d17" }}
+                          className="origin-right text-2xl font-extrabold tabular-nums"
+                        >
+                          {formatPrice(grandTotal)}
+                        </motion.dd>
+                      </div>
+                    </dl>
+                  </aside>
+                </Reveal>
               </div>
-            </aside>
-          </div>
-        )}
-      </section>
-    </main>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+    </div>
   );
 }

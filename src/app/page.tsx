@@ -1,571 +1,853 @@
 "use client";
 
-import { KeyboardEvent, useEffect, useMemo, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { formatPrice, Product, productCatalog } from "@/data/products";
+import {
+  AnimatePresence,
+  LayoutGroup,
+  motion,
+  MotionValue,
+  useScroll,
+  useTransform,
+} from "motion/react";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
+import {
+  formatPrice,
+  getDeliveryDelay,
+  Product,
+  productCatalog,
+} from "@/data/products";
 import { SiteHeader } from "@/components/site-header";
+import {
+  CircularText,
+  CountUp,
+  easeOut,
+  Magnetic,
+  Marquee,
+  Reveal,
+  SplitWords,
+  SprinkleField,
+  TiltCard,
+} from "@/components/fx";
+import { ProductSheet } from "@/components/product-sheet";
 
 const catalog = productCatalog;
-const carouselProducts = [...catalog, ...catalog];
-const bestSellerProducts = [catalog[0], catalog[6], catalog[1]].filter(
-  (item): item is (typeof catalog)[number] => Boolean(item)
-);
+const byId = (id: string) =>
+  catalog.find((item) => item.id === id) ?? catalog[0];
+const heroSlides = [
+  "layer-cake-signature",
+  "cookie-triple-choco",
+  "trompe-loeil-framboise",
+  "cheesecake-mango-pop",
+].map(byId);
+const bestSellerProducts = [
+  "cookie-triple-choco",
+  "layer-cake-signature",
+  "trompe-loeil-framboise",
+].map(byId);
+// Mis en avant sur 2 colonnes quand tout le catalogue est affiché.
+const featuredIds = ["trompe-loeil-framboise", "layer-cake-signature"];
+const categories = [
+  "Tout",
+  ...Array.from(new Set(catalog.map((item) => item.category))),
+];
+
 const reviews = [
   {
     id: "avis-1",
-    name: "Ines B.",
-    text: "Layer cake incroyable, visuel magnifique et gout ultra frais. Toute la famille a valide.",
-    rating: 5,
+    name: "Inès B.",
+    text: "Layer cake incroyable, visuel magnifique et goût ultra frais. Toute la famille a validé.",
     city: "Houilles",
   },
   {
     id: "avis-2",
     name: "Sabrina M.",
-    text: "Commande simple, livraison rapide et produits conformes aux photos. Je recommande a 100%.",
-    rating: 5,
+    text: "Commande simple, livraison rapide et produits conformes aux photos. Je recommande à 100 %.",
     city: "Nanterre",
   },
   {
     id: "avis-3",
     name: "Yassine K.",
-    text: "Les trompe-l'oeil sont bluffants. Service tres pro et super communication avant la livraison.",
-    rating: 5,
+    text: "Les trompe-l'œil sont bluffants. Service très pro et super communication avant la livraison.",
     city: "Bezons",
   },
 ];
 
+const steps = [
+  {
+    title: "Choisissez vos douceurs",
+    text: "Parfums, quantités, box à composer : tout se règle depuis la page Commander.",
+    tone: "bg-mangue text-ganache",
+  },
+  {
+    title: "Réservez un créneau",
+    text: "Livraison ou retrait à l'atelier, du matin au soir. Les trompe-l'œil se réservent la veille.",
+    tone: "bg-pistache text-pistache-deep",
+  },
+  {
+    title: "On sonne chez vous",
+    text: "Préparé le jour même, livré frais dans un rayon de 50 km autour de Houilles.",
+    tone: "bg-framboise text-white",
+  },
+];
+
+const ribbonA = [
+  "Livraison offerte dès 15 €",
+  "Fait maison à Houilles",
+  "Livré le jour même",
+  "Retrait à l'atelier",
+];
+const ribbonB = [
+  "Cookies XXL",
+  "Trompe-l'œil à J+1",
+  "Layer cakes",
+  "Box à composer",
+  "Sur mesure",
+];
+
+const storyText =
+  "Un anniversaire, un baptême, un mariage ? On imagine le gâteau avec vous : thème, couleurs, parfums, nombre de parts. Vous donnez la date, on s'occupe du reste.";
+
+const bandStyle = (color: string) => ({ "--band": color }) as CSSProperties;
+
 export default function Home() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-
-  const deliveryLabel = useMemo(() => {
-    if (!selectedProduct) return "";
-    return selectedProduct.category === "Trompe-l'oeil"
-      ? "Delai de livraison : J+1"
-      : "Delai de livraison : Jour meme";
-  }, [selectedProduct]);
-
-  useEffect(() => {
-    const layerItems = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-parallax-layer]")
-    );
-    const revealItems = Array.from(
-      document.querySelectorAll<HTMLElement>(".animate-reveal")
-    );
-    const hero = document.querySelector<HTMLElement>("[data-hero]");
-    const scrollItems = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-scroll-speed]")
-    );
-
-    const moveLayers = (clientX: number, clientY: number) => {
-      if (!hero) return;
-      const rect = hero.getBoundingClientRect();
-      const x = ((clientX - rect.left) / rect.width - 0.5) * 2;
-      const y = ((clientY - rect.top) / rect.height - 0.5) * 2;
-
-      layerItems.forEach((item) => {
-        const depth = Number(item.dataset.depth ?? "0.1");
-        const moveX = x * depth * 42;
-        const moveY = y * depth * 42;
-        item.style.transform = `translate3d(${moveX}px, ${moveY}px, 0)`;
-      });
-    };
-
-    let scrollRaf = 0;
-    const onPointerMove = (event: PointerEvent) => {
-      moveLayers(event.clientX, event.clientY);
-    };
-
-    const onPointerLeave = () => {
-      layerItems.forEach((item) => {
-        item.style.transform = "translate3d(0, 0, 0)";
-      });
-    };
-
-    const onScroll = () => {
-      if (scrollRaf) return;
-      scrollRaf = window.requestAnimationFrame(() => {
-        const scrollY = window.scrollY;
-        const canUseScrollParallax = window.innerWidth >= 1024;
-        scrollItems.forEach((item) => {
-          if (!canUseScrollParallax) {
-            item.style.transform = "translate3d(0, 0, 0)";
-            return;
-          }
-          const speed = Number(item.dataset.scrollSpeed ?? "0.08");
-          item.style.transform = `translate3d(0, ${scrollY * speed}px, 0)`;
-        });
-        scrollRaf = 0;
-      });
-    };
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.18 }
-    );
-
-    revealItems.forEach((item) => observer.observe(item));
-    hero?.addEventListener("pointermove", onPointerMove);
-    hero?.addEventListener("pointerleave", onPointerLeave);
-    window.addEventListener("scroll", onScroll, { passive: true });
-
-    return () => {
-      observer.disconnect();
-      hero?.removeEventListener("pointermove", onPointerMove);
-      hero?.removeEventListener("pointerleave", onPointerLeave);
-      window.removeEventListener("scroll", onScroll);
-      if (scrollRaf) {
-        window.cancelAnimationFrame(scrollRaf);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isProductModalOpen) return;
-    const onEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsProductModalOpen(false);
-      }
-    };
-    window.addEventListener("keydown", onEscape);
-    return () => window.removeEventListener("keydown", onEscape);
-  }, [isProductModalOpen]);
-
-  const openProductModal = (product: Product) => {
-    setSelectedProduct(product);
-    setIsProductModalOpen(true);
-  };
-
-  const onCardKeyDown = (
-    event: KeyboardEvent<HTMLElement>,
-    product: Product
-  ) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      openProductModal(product);
-    }
-  };
 
   return (
-    <div className="relative min-h-screen overflow-x-clip pb-10">
-      <div className="sugar-grain" />
-      <div className="pointer-events-none fixed -top-40 -left-24 -z-10 h-96 w-96 rounded-full bg-[#ff8ccd]/30 blur-[85px]" />
-      <div className="pointer-events-none fixed -right-20 bottom-0 -z-10 h-96 w-96 rounded-full bg-[#8decc3]/30 blur-[95px]" />
-
+    <div className="relative min-h-screen overflow-x-clip">
       <SiteHeader currentPage="home" />
 
-      <main className="mx-auto w-[min(1200px,94%)] sm:w-[min(1200px,92%)]">
-        <section
-          data-hero
-          className="grid min-h-[74vh] items-center gap-6 py-8 sm:gap-10 sm:py-14 lg:min-h-[88vh] lg:grid-cols-[1fr_1.05fr]"
-        >
-          <div className="animate-reveal">
-            <p className="mb-3 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
-              Boutique de patisserie en ligne
-            </p>
-            <h1 className="text-4xl leading-[0.96] font-black tracking-tight text-[#4f3340] sm:text-6xl lg:text-7xl">
-              Ultra
-              <span className="bg-gradient-to-r from-[#ff72b6] to-[#ff9d74] bg-clip-text text-transparent">
-                {" "}
-                Gourmand
-              </span>
-              <br />
-              et visuellement
-              <br />
-              irresistible.
-            </h1>
-            <p className="mt-4 max-w-xl text-base text-[#775766] sm:text-lg">
-              Cookies, trompe-l&apos;oeil et creations premium avec une
-              experience tres visuelle, animee et memorable.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3 text-sm font-semibold text-[#6f4f5e]">
-              <span className="glass rounded-full px-3 py-1.5">
-                Livraison rapide
-              </span>
-              <span className="glass rounded-full px-3 py-1.5">
-                Houilles (78) et alentours
-              </span>
-              <span className="glass rounded-full px-3 py-1.5">Fait maison</span>
-              <span className="glass rounded-full px-3 py-1.5">
-                Personnalisation complete
-              </span>
-            </div>
-            <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
-              <Link
-                href="/commander"
-                className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 text-center font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] transition hover:-translate-y-0.5"
-              >
-                Commander maintenant
-              </Link>
-              <a
-                href="#best"
-                className="glass rounded-full px-6 py-3 text-center font-bold text-[#6d4d5a]"
-              >
-                Top ventes
-              </a>
-            </div>
-          </div>
+      <LayoutGroup>
+        <main>
+          <Hero />
+          <RibbonCross />
+          <Vitrine onOpen={setSelectedProduct} />
+          <BestSellers />
+          <Steps />
+          <Reviews />
+          <Story />
+        </main>
 
-          <div className="hero-card glass relative min-h-[22rem] overflow-hidden rounded-[1.5rem] sm:min-h-[30rem] sm:rounded-[2rem] lg:min-h-[34rem]">
-            <Image
-              src={catalog[6]?.image ?? catalog[0].image}
-              alt="Layer cake signature"
-              fill
-              priority
-              className="object-cover object-center"
+        <AnimatePresence>
+          {selectedProduct && (
+            <ProductSheet
+              key={selectedProduct.id}
+              product={selectedProduct}
+              onClose={() => setSelectedProduct(null)}
+              photoLayoutId={`photo-${selectedProduct.id}`}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#2f1f2a]/45 via-transparent to-transparent" />
-            <span
-              data-parallax-layer
-              data-depth="0.2"
-              className="absolute top-6 left-6 rounded-full bg-white px-3 py-1 text-xs font-extrabold text-[#ff5cab]"
-            >
-              NOUVEAUTE
-            </span>
-            <span
-              data-parallax-layer
-              data-depth="0.12"
-              className="absolute top-1/2 right-6 rounded-full bg-white/80 px-3 py-1 text-xs font-bold text-[#664650]"
-            >
-              100% artisanal premium
-            </span>
-            <div
-              data-parallax-layer
-              data-depth="0.1"
-              className="glass absolute right-6 bottom-6 flex w-36 items-center gap-2 rounded-2xl p-2"
-            >
-              <div className="relative h-14 w-14 overflow-hidden rounded-xl">
+          )}
+        </AnimatePresence>
+      </LayoutGroup>
+    </div>
+  );
+}
+
+/* ---------------- Hero ---------------- */
+
+function Hero() {
+  const reduce = useReducedMotion();
+  const [slide, setSlide] = useState(0);
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"],
+  });
+  const photoY = useTransform(scrollYProgress, [0, 1], [0, 120]);
+  const photoRotate = useTransform(scrollYProgress, [0, 1], [0, -12]);
+  const textY = useTransform(scrollYProgress, [0, 1], [0, -60]);
+
+  useEffect(() => {
+    if (reduce) return;
+    const timer = window.setInterval(
+      () => setSlide((value) => (value + 1) % heroSlides.length),
+      4200,
+    );
+    return () => window.clearInterval(timer);
+  }, [reduce, slide]);
+
+  const product = heroSlides[slide];
+
+  return (
+    <section
+      ref={ref}
+      className="relative mx-auto grid w-[min(1200px,92%)] items-center gap-14 pt-12 pb-24 sm:pt-16 lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:pt-20 lg:pb-32"
+    >
+      <SprinkleField className="-z-10 hidden sm:block lg:left-[48%]" />
+
+      <motion.div style={reduce ? undefined : { y: textY }}>
+        <motion.p
+          className="note"
+          initial={reduce ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: easeOut }}
+        >
+          <span className="note-dot" aria-hidden="true">
+            ✦
+          </span>
+          Pâtisserie maison à Houilles (78)
+        </motion.p>
+        <SplitWords
+          text="Gourmand jusqu'à la dernière miette."
+          className="display-xl mt-6"
+          delay={0.15}
+        />
+        <motion.p
+          className="lede mt-6"
+          initial={reduce ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.7, ease: easeOut }}
+        >
+          Cookies XXL, trompe-l&apos;œil bluffants et layer cakes à étages,
+          préparés à l&apos;atelier et livrés chez vous le jour même.
+        </motion.p>
+        <motion.div
+          className="mt-8 flex flex-wrap gap-3"
+          initial={reduce ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.85, ease: easeOut }}
+        >
+          <Magnetic>
+            <Link href="/commander" className="btn btn-primary shine px-7">
+              Commander
+            </Link>
+          </Magnetic>
+          <Magnetic>
+            <a href="#vitrine" className="btn btn-outline px-7">
+              Voir la vitrine
+            </a>
+          </Magnetic>
+        </motion.div>
+      </motion.div>
+
+      <motion.div
+        className="relative mx-auto w-full max-w-[34rem]"
+        style={reduce ? undefined : { y: photoY, rotate: photoRotate }}
+        initial={reduce ? false : { opacity: 0, scale: 0.85, rotate: -10 }}
+        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 90, damping: 16, delay: 0.2 }}
+      >
+        {/* Plateau tournant : le feston tourne, la photo reste droite. */}
+        <div className="turntable scallop-frame relative aspect-square bg-framboise-soft">
+          <div className="turntable-counter absolute inset-0">
+            <AnimatePresence initial={false}>
+              <motion.div
+                key={product.id}
+                className="absolute inset-0"
+                initial={{ opacity: 0, scale: 1.15 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 1, ease: easeOut }}
+              >
                 <Image
-                  src={catalog[1]?.image ?? catalog[0].image}
-                  alt="Trompe-l'oeil artisanal"
+                  src={product.image}
+                  alt={product.name}
                   fill
+                  priority={slide === 0}
+                  sizes="(min-width: 1024px) 34rem, 92vw"
                   className="object-cover"
                 />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-[#7f5e6d] uppercase">
-                  Cookie
-                </p>
-                <p className="text-sm font-black text-[#4f3340]">5,90 EUR</p>
-              </div>
-            </div>
-            <div
-              data-parallax-layer
-              data-depth="0.18"
-              className="absolute top-[14%] right-[10%] h-24 w-24 rounded-full border border-white/70 bg-[#ff82c3]/30 blur-[2px]"
-            />
-            <div
-              data-parallax-layer
-              data-depth="0.25"
-              className="absolute top-[24%] left-[6%] h-12 w-12 rounded-full bg-[#ffe291]/70"
-            />
-          </div>
-        </section>
-
-        <section className="animate-reveal py-2">
-          <div className="home-location-banner">
-            <p>
-              Zone de livraison : <strong>Houilles (78)</strong> et ses alentours.
-            </p>
-            <p>Retrait et livraison rapide sur reservation.</p>
-          </div>
-        </section>
-
-        <section id="collections" className="py-8 sm:py-10">
-          <div className="animate-reveal mb-7">
-            <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
-              Collections
-            </p>
-            <h2 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
-              Gateaux et cookies en vitrine
-            </h2>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {catalog.map((item) => (
-              <article
-                key={item.name}
-                role="button"
-                tabIndex={0}
-                onClick={() => openProductModal(item)}
-                onKeyDown={(event) => onCardKeyDown(event, item)}
-                className={`animate-reveal glass group rounded-3xl p-4 shadow-[0_18px_45px_rgba(248,154,194,.14)] transition hover:-translate-y-1 ${
-                  item.category === "Box"
-                    ? "ring-1 ring-[#ff8fc9]/55 shadow-[0_20px_50px_rgba(255,114,182,.26)]"
-                    : ""
-                } cursor-pointer focus-visible:ring-2 focus-visible:ring-[#ff8fc9] focus-visible:outline-none`}
-              >
-                <div className="relative mb-4 h-52 overflow-hidden rounded-2xl sm:h-56">
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    fill
-                    className="object-cover transition duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
-                  <span className="glass absolute top-3 left-3 rounded-full px-3 py-1 text-xs font-bold text-[#6d4d5a]">
-                    {item.tag}
-                  </span>
-                  <p className="absolute right-3 bottom-3 rounded-full bg-white px-3 py-1 text-sm font-black text-[#4f3340]">
-                    {formatPrice(item.price)}
-                  </p>
-                </div>
-                <h3 className="text-xl font-extrabold text-[#553a46]">
-                  {item.name}
-                </h3>
-                <p className="mt-2 text-[#765968]">{item.description}</p>
-                <Link
-                  href={`/commander?product=${encodeURIComponent(item.id)}`}
-                  onClick={(event) => event.stopPropagation()}
-                  className="mt-4 inline-flex rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-4 py-2 text-sm font-bold text-white shadow-[0_10px_25px_rgba(255,114,182,.35)]"
-                >
-                  Commander
-                </Link>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section id="best" className="grid items-stretch gap-5 py-8 sm:py-10 lg:grid-cols-[1.08fr_.92fr]">
-          <div className="animate-reveal relative min-h-[20rem] overflow-hidden rounded-[1.4rem] sm:min-h-[26rem] sm:rounded-[1.8rem]">
-            <Image
-              src={catalog[6]?.image ?? catalog[0].image}
-              alt="Selection premium Patsam Gourmandise"
-              fill
-              className="object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#2a1621]/55 via-transparent to-transparent" />
-            <p className="absolute left-4 bottom-16 text-2xl leading-none font-black text-white sm:left-6 sm:bottom-20 sm:text-4xl">
-              Saveurs intenses
-              <br />
-              textures parfaites
-            </p>
-            <div className="absolute right-4 bottom-4 flex flex-wrap justify-end gap-2 sm:right-6">
-              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-extrabold text-[#5d3f4d]">
-                Frais du jour
-              </span>
-              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-extrabold text-[#5d3f4d]">
-                Livraison rapide
-              </span>
-            </div>
-          </div>
-
-          <div className="animate-reveal glass rounded-[1.4rem] p-4 sm:rounded-[1.8rem] sm:p-6">
-            <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
-              Best-sellers
-            </p>
-            <h2 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-4xl">
-              Les favoris qui partent en premier
-            </h2>
-            <p className="mt-2 text-[#735665]">
-              Une selection ultra demandee cette semaine, prete a etre personnalisee.
-            </p>
-            <div className="mt-5 space-y-3">
-              {bestSellerProducts.map((item) => (
-                <article
-                  key={item.id}
-                  className="rounded-2xl border border-white/70 bg-white/60 p-3 shadow-[0_10px_24px_rgba(245,141,189,.12)]"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-base font-extrabold text-[#563845]">{item.name}</p>
-                      <p className="mt-1 text-sm text-[#735665]">{item.description}</p>
-                    </div>
-                    <p className="shrink-0 rounded-full bg-white px-3 py-1 text-sm font-black text-[#4f3340]">
-                      {formatPrice(item.price)}
-                    </p>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between gap-3">
-                    <span className="rounded-full bg-[#ffe4f1] px-3 py-1 text-xs font-extrabold text-[#9b4f79]">
-                      {item.tag}
-                    </span>
-                    <span className="text-xs font-semibold text-[#7d5d6d]">{item.category}</span>
-                  </div>
-                </article>
-              ))}
-            </div>
-            <div className="mt-6 grid gap-2 sm:flex sm:flex-wrap">
-              <Link
-                href="/commander"
-                className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 text-center font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] transition hover:-translate-y-0.5"
-              >
-                Commander ces best-sellers
-              </Link>
-              <a
-                href="#collections"
-                className="glass rounded-full px-5 py-3 text-center text-sm font-bold text-[#6d4d5a]"
-              >
-                Voir tout le catalogue
-              </a>
-            </div>
-          </div>
-        </section>
-
-        <section className="animate-reveal py-8 sm:py-10">
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
-                Feed gourmand
-              </p>
-              <h2 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-4xl">
-                Nos creations gourmandes
-              </h2>
-            </div>
-            <a href="#collections" className="text-sm font-bold text-[#f24ea5]">
-              Voir tout
-            </a>
-          </div>
-
-          <div className="marquee-wrap">
-            <div className="marquee-track">
-              {carouselProducts.map((item, index) => (
-                <div
-                  key={`${item.id}-${index}`}
-                  className="relative h-44 w-64 shrink-0 overflow-hidden rounded-2xl md:h-52 md:w-80"
-                >
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="marquee-item-label">{item.name}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="avis" className="py-8 sm:py-10">
-          <div className="animate-reveal mb-7 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
-                Avis clients
-              </p>
-              <h2 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
-                Ils ont deja commande
-              </h2>
-            </div>
-            <div className="rounded-2xl bg-white/75 px-4 py-3 text-sm text-[#6c4b59] shadow-[0_10px_24px_rgba(245,141,189,.12)]">
-              <p className="font-black text-[#4f3340]">4.9 / 5</p>
-              <p className="font-semibold">Base sur les retours clients</p>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {reviews.map((review) => (
-              <article
-                key={review.id}
-                className="animate-reveal glass rounded-3xl p-5 shadow-[0_18px_45px_rgba(248,154,194,.14)]"
-              >
-                <p className="text-base leading-relaxed text-[#5e434f]">
-                  &ldquo;{review.text}&rdquo;
-                </p>
-                <div className="mt-4 flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-extrabold text-[#553a46]">{review.name}</p>
-                    <p className="text-xs font-semibold text-[#7b5d6c]">{review.city}</p>
-                  </div>
-                  <p className="rounded-full bg-[#fff0f7] px-3 py-1 text-xs font-black text-[#a34d74]">
-                    {"★".repeat(review.rating)}
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section id="histoire" className="animate-reveal py-12 text-center sm:py-16">
-          <p className="mb-3 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
-            Notre histoire
-          </p>
-          <h2 className="mx-auto max-w-4xl text-3xl leading-tight font-black tracking-tight text-[#4f3340] sm:text-5xl">
-            Patsam Gourmandise transforme chaque commande en experience waouh.
-          </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-base text-[#785a68] sm:text-lg">
-            Atelier artisanal, direction artistique forte et exigence premium.
-            Un univers de marque fort, bien au-dela d&apos;une simple page catalogue.
-          </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/livraison"
-              className="glass rounded-full px-5 py-2.5 text-sm font-bold text-[#6d4d5a]"
-            >
-              Infos livraison
-            </Link>
-            <Link
-              href="/contact"
-              className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-5 py-2.5 text-sm font-bold text-white shadow-[0_10px_25px_rgba(255,114,182,.35)]"
-            >
-              Nous contacter
-            </Link>
-          </div>
-        </section>
-      </main>
-
-      {isProductModalOpen && selectedProduct && (
-        <div
-          className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/45 p-2 sm:p-4"
-          onClick={() => setIsProductModalOpen(false)}
-        >
-          <div
-            className="glass w-full max-w-2xl rounded-[1.4rem] bg-white/88 p-5 sm:p-6"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mb-4 flex items-start justify-between gap-2">
-              <div>
-                <p className="text-xs font-extrabold tracking-[0.16em] text-[#966a7d] uppercase">
-                  Details produit
-                </p>
-                <h2 className="text-3xl font-black text-[#4f3340]">
-                  {selectedProduct.name}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsProductModalOpen(false)}
-                className="rounded-full bg-white px-3 py-1 text-sm font-bold text-[#734d5f]"
-              >
-                Fermer
-              </button>
-            </div>
-
-            <p className="text-sm text-[#6f515f]">{selectedProduct.description}</p>
-
-            <div className="mt-4 rounded-2xl bg-white/70 p-4 text-sm text-[#654755]">
-              <p className="font-semibold">{deliveryLabel}</p>
-              <p className="mt-2 font-bold text-[#725161]">Allergenes</p>
-              <p>{selectedProduct.allergens.join(", ")}</p>
-              <p className="mt-2 font-bold text-[#725161]">Gouts disponibles</p>
-              <p>{selectedProduct.flavors.join(", ")}</p>
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Link
-                href={`/commander?product=${encodeURIComponent(selectedProduct.id)}`}
-                className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-5 py-2.5 text-sm font-bold text-white shadow-[0_10px_25px_rgba(255,114,182,.35)]"
-              >
-                Commander
-              </Link>
-              <button
-                type="button"
-                onClick={() => setIsProductModalOpen(false)}
-                className="glass rounded-full px-5 py-2.5 text-sm font-bold text-[#6d4d5a]"
-              >
-                Retour
-              </button>
-            </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
-      )}
-    </div>
+
+        <CircularText
+          text="LIVRÉ LE JOUR MÊME ✦ FAIT MAISON ✦ "
+          className="bob absolute -top-4 -right-2 h-32 w-32 rounded-full bg-mangue text-ganache shadow-[0_14px_30px_-12px_rgba(59,29,23,.5)] sm:h-36 sm:w-36"
+        >
+          <span className="font-display text-3xl text-framboise">78</span>
+        </CircularText>
+
+        <div className="absolute bottom-[8%] -left-3 rotate-[-5deg] sm:-left-8">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.p
+              key={product.id}
+              className="price-tag text-[1.05rem]"
+              initial={{ opacity: 0, y: 14, rotate: -8 }}
+              animate={{ opacity: 1, y: 0, rotate: 0 }}
+              exit={{ opacity: 0, y: -14, rotate: 6 }}
+              transition={{ type: "spring", stiffness: 300, damping: 22 }}
+            >
+              <span className="font-semibold">{product.name}</span>
+              <span className="text-framboise">
+                {formatPrice(product.price)}
+              </span>
+            </motion.p>
+          </AnimatePresence>
+        </div>
+
+        <div
+          className="absolute -bottom-8 left-1/2 flex -translate-x-1/2 gap-2"
+          role="group"
+          aria-label="Choisir la photo"
+        >
+          {heroSlides.map((item, index) => (
+            <button
+              key={item.id}
+              type="button"
+              aria-label={item.name}
+              aria-pressed={slide === index}
+              onClick={() => setSlide(index)}
+              className="grid h-6 place-items-center px-0.5"
+            >
+              <span
+                className={`block h-2 rounded-full transition-all duration-500 ${
+                  slide === index
+                    ? "w-8 bg-framboise"
+                    : "w-2 bg-ganache/25 hover:bg-ganache/50"
+                }`}
+              />
+            </button>
+          ))}
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+
+/* ---------------- Rubans croisés ---------------- */
+
+function RibbonCross() {
+  return (
+    <section aria-label="En bref" className="relative py-14">
+      <Marquee
+        speed={40}
+        className="relative z-10 rotate-[-3deg] bg-framboise py-4 shadow-[0_16px_30px_-18px_rgba(59,29,23,.6)]"
+      >
+        {ribbonA.map((word) => (
+          <span
+            key={word}
+            className="font-display flex items-center gap-8 pr-8 text-2xl text-white sm:text-3xl"
+          >
+            {word}
+            <span aria-hidden="true" className="text-mangue">
+              ✦
+            </span>
+          </span>
+        ))}
+      </Marquee>
+      <Marquee
+        speed={48}
+        reverse
+        className="absolute inset-x-0 top-1/2 -translate-y-1/2 rotate-[2.5deg] bg-pistache py-3"
+      >
+        {ribbonB.map((word) => (
+          <span
+            key={word}
+            className="flex items-center gap-8 pr-8 text-lg font-extrabold text-pistache-deep"
+          >
+            {word}
+            <span aria-hidden="true">●</span>
+          </span>
+        ))}
+      </Marquee>
+    </section>
+  );
+}
+
+/* ---------------- Vitrine ---------------- */
+
+function Vitrine({ onOpen }: { onOpen: (product: Product) => void }) {
+  const [category, setCategory] = useState("Tout");
+  const visibleProducts =
+    category === "Tout"
+      ? catalog
+      : catalog.filter((item) => item.category === category);
+
+  return (
+    <section id="vitrine" className="mx-auto w-[min(1200px,92%)] pt-16 pb-16">
+      <div className="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <SplitWords as="h2" text="La vitrine" className="display-lg" inView />
+          <Reveal delay={0.1}>
+            <p className="lede mt-3">
+              Tout est préparé à la commande. Cliquez sur un gâteau pour choisir
+              son parfum et l&apos;ajouter au panier.
+            </p>
+          </Reveal>
+        </div>
+        <div className="tabs" role="group" aria-label="Filtrer par catégorie">
+          {categories.map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={`relative isolate rounded-full px-4 py-2 text-[0.95rem] font-bold transition-colors duration-300 ${
+                category === item
+                  ? "text-chantilly"
+                  : "text-ganache hover:bg-white/60"
+              }`}
+              aria-pressed={category === item}
+              onClick={() => setCategory(item)}
+            >
+              {category === item && (
+                <motion.span
+                  layoutId="vitrine-tab"
+                  className="absolute inset-0 -z-10 rounded-full bg-ganache"
+                  transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                />
+              )}
+              {item}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <motion.div
+        layout
+        className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+      >
+        <AnimatePresence mode="popLayout">
+          {visibleProducts.map((item, index) => {
+            const featured =
+              category === "Tout" && featuredIds.includes(item.id);
+            return (
+              <motion.article
+                key={item.id}
+                layout
+                initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, amount: 0.15 }}
+                exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                transition={{
+                  duration: 0.6,
+                  delay: (index % 3) * 0.08,
+                  ease: easeOut,
+                }}
+                className={featured ? "lg:col-span-2" : ""}
+              >
+                <TiltCard
+                  className="vitrine-card group h-full"
+                  max={featured ? 4 : 7}
+                >
+                  <button
+                    type="button"
+                    onClick={() => onOpen(item)}
+                    className="text-left"
+                    aria-label={`Voir le détail : ${item.name}`}
+                  >
+                    <motion.div
+                      layoutId={`photo-${item.id}`}
+                      className={`vitrine-photo ${featured ? "lg:aspect-[2.43/1]" : ""}`}
+                    >
+                      <Image
+                        src={item.image}
+                        alt=""
+                        fill
+                        sizes={
+                          featured
+                            ? "(min-width: 1024px) 790px, (min-width: 640px) 46vw, 92vw"
+                            : "(min-width: 1024px) 380px, (min-width: 640px) 46vw, 92vw"
+                        }
+                        className="object-cover"
+                      />
+                      <span className="absolute inset-0 bg-gradient-to-t from-ganache/60 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                      <span className="absolute right-4 bottom-4 translate-y-3 rounded-full bg-white px-4 py-2 text-sm font-bold text-ganache opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
+                        Choisir le parfum
+                      </span>
+                      <span
+                        className={`chip absolute top-3 right-3 ${
+                          item.category === "Trompe-l'œil" ||
+                          item.category === "Box"
+                            ? ""
+                            : "chip-framboise"
+                        }`}
+                      >
+                        {item.tag}
+                      </span>
+                      <span className="price-tag absolute bottom-4 left-0 transition-transform duration-500 group-hover:-rotate-6">
+                        {formatPrice(item.price)}
+                      </span>
+                    </motion.div>
+                    <div className="px-3 pt-5">
+                      <h3 className="text-xl leading-tight font-extrabold text-ganache transition-colors group-hover:text-framboise">
+                        {item.name}
+                      </h3>
+                      <p className="mt-0.5 text-sm font-bold text-framboise first-letter:uppercase">
+                        {item.unit}
+                      </p>
+                      <p className="mt-1.5 text-[0.98rem] text-cacao">
+                        {item.description}
+                      </p>
+                    </div>
+                  </button>
+                  <div className="mt-auto flex items-center justify-between gap-3 px-3 pt-5">
+                    <p className="text-sm font-semibold text-cacao">
+                      {getDeliveryDelay(item)}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => onOpen(item)}
+                      className="btn btn-primary btn-sm shine"
+                    >
+                      Ajouter
+                    </button>
+                  </div>
+                </TiltCard>
+              </motion.article>
+            );
+          })}
+        </AnimatePresence>
+      </motion.div>
+    </section>
+  );
+}
+
+/* ---------------- Les plus commandés ---------------- */
+
+function BestSellers() {
+  const [active, setActive] = useState(0);
+  const product = bestSellerProducts[active];
+
+  return (
+    <section
+      id="best"
+      className="mx-auto grid w-[min(1200px,92%)] items-center gap-12 py-20 lg:grid-cols-[.9fr_1.1fr]"
+    >
+      <Reveal className="relative aspect-[4/5] overflow-hidden rounded-[2.5rem] rounded-tl-[9rem] bg-framboise-soft">
+        <AnimatePresence initial={false}>
+          <motion.div
+            key={product.id}
+            className="absolute inset-0"
+            initial={{ clipPath: "circle(0% at 50% 50%)" }}
+            animate={{ clipPath: "circle(75% at 50% 50%)" }}
+            exit={{ opacity: 0, transition: { delay: 0.5, duration: 0.2 } }}
+            transition={{ duration: 0.8, ease: easeOut }}
+          >
+            <Image
+              src={product.image}
+              alt={product.name}
+              fill
+              sizes="(min-width: 1024px) 480px, 92vw"
+              className="object-cover"
+            />
+          </motion.div>
+        </AnimatePresence>
+        <span className="font-display absolute top-6 right-6 grid h-20 w-20 place-items-center rounded-full bg-chantilly text-4xl text-framboise">
+          {active + 1}
+        </span>
+      </Reveal>
+
+      <div>
+        <SplitWords
+          as="h2"
+          text="Les plus commandés"
+          className="display-lg"
+          inView
+        />
+        <Reveal delay={0.1}>
+          <p className="lede mt-3">
+            Ce qui part en premier, semaine après semaine.
+          </p>
+        </Reveal>
+        <ol className="mt-8 grid gap-1">
+          {bestSellerProducts.map((item, index) => (
+            <motion.li
+              key={item.id}
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{
+                duration: 0.6,
+                delay: 0.1 + index * 0.08,
+                ease: easeOut,
+              }}
+            >
+              <Link
+                href={`/commander?product=${encodeURIComponent(item.id)}`}
+                onPointerEnter={() => setActive(index)}
+                onFocus={() => setActive(index)}
+                className={`group relative grid grid-cols-[3rem_4.5rem_1fr_auto] items-center gap-4 overflow-hidden rounded-2xl border-b border-line px-2 py-4 transition-colors sm:grid-cols-[4rem_5rem_1fr_auto] ${
+                  active === index ? "bg-chantilly" : ""
+                }`}
+              >
+                <span
+                  className={`font-display text-5xl leading-none transition-all duration-500 sm:text-6xl ${
+                    active === index
+                      ? "-rotate-6 text-framboise"
+                      : "text-ganache/25"
+                  }`}
+                >
+                  {index + 1}
+                </span>
+                <span className="relative aspect-square overflow-hidden rounded-2xl">
+                  <Image
+                    src={item.image}
+                    alt=""
+                    fill
+                    sizes="5rem"
+                    className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                </span>
+                <span>
+                  <span className="block text-lg leading-tight font-extrabold text-ganache">
+                    {item.name}
+                  </span>
+                  <span className="mt-0.5 block text-sm text-cacao">
+                    {item.description}
+                  </span>
+                </span>
+                <span className="text-right">
+                  <span className="block text-lg font-extrabold tabular-nums text-ganache">
+                    {formatPrice(item.price)}
+                  </span>
+                  <span className="block text-xs font-semibold text-cacao">
+                    {item.unit.split(",")[0]}
+                  </span>
+                </span>
+              </Link>
+            </motion.li>
+          ))}
+        </ol>
+        <Reveal delay={0.3}>
+          <Magnetic>
+            <Link href="/commander" className="btn btn-primary shine mt-8 px-7">
+              Composer ma commande
+            </Link>
+          </Magnetic>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- Étapes ---------------- */
+
+function Steps() {
+  const ref = useRef<HTMLOListElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start 85%", "end 55%"],
+  });
+
+  return (
+    <section className="mx-auto w-[min(1200px,92%)] py-20">
+      <SplitWords
+        as="h2"
+        text="Commander, c'est trois étapes."
+        className="display-lg max-w-xl"
+        inView
+      />
+      <ol
+        ref={ref}
+        className="relative mt-14 grid gap-12 md:grid-cols-3 md:gap-8"
+      >
+        {/* Ligne de progression qui se dessine au scroll */}
+        <span
+          aria-hidden="true"
+          className="absolute top-10 right-[16%] left-[16%] hidden h-1 rounded-full bg-ganache/10 md:block"
+        />
+        <motion.span
+          aria-hidden="true"
+          className="absolute top-10 left-[16%] hidden h-1 origin-left rounded-full bg-framboise md:block"
+          style={{ scaleX: scrollYProgress, width: "68%" }}
+        />
+        {steps.map((step, index) => (
+          <StepItem
+            key={step.title}
+            step={step}
+            index={index}
+            progress={scrollYProgress}
+          />
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function StepItem({
+  step,
+  index,
+  progress,
+}: {
+  step: (typeof steps)[number];
+  index: number;
+  progress: MotionValue<number>;
+}) {
+  const reduce = useReducedMotion();
+  const threshold = index / 2;
+  const scale = useTransform(
+    progress,
+    [Math.max(0, threshold - 0.15), threshold],
+    [0.6, 1],
+  );
+  const rotate = useTransform(
+    progress,
+    [Math.max(0, threshold - 0.15), threshold],
+    [-90, 0],
+  );
+  return (
+    <li className="relative">
+      <motion.span
+        style={reduce ? undefined : { scale, rotate }}
+        className={`scallop-frame font-display relative grid h-20 w-20 place-items-center text-4xl ${step.tone}`}
+        aria-hidden="true"
+      >
+        {index + 1}
+      </motion.span>
+      <Reveal delay={index * 0.1} y={20}>
+        <h3 className="mt-5 text-2xl font-extrabold text-ganache">
+          {step.title}
+        </h3>
+        <p className="mt-2 max-w-sm text-cacao">{step.text}</p>
+      </Reveal>
+    </li>
+  );
+}
+
+/* ---------------- Avis ---------------- */
+
+function Reviews() {
+  return (
+    <section
+      id="avis"
+      className="band band-scallop-top band-scallop-bottom mt-10 text-ganache"
+      style={bandStyle("var(--chantilly)")}
+    >
+      <div className="mx-auto w-[min(1200px,92%)] py-20">
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <SplitWords
+            as="h2"
+            text="Ils en redemandent"
+            className="display-lg"
+            inView
+          />
+          <Reveal>
+            <p className="text-lg text-cacao">
+              <CountUp
+                to={4.9}
+                decimals={1}
+                className="font-display text-6xl text-framboise"
+              />{" "}
+              / 5 sur les retours clients
+            </p>
+          </Reveal>
+        </div>
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+          {reviews.map((review, index) => (
+            <Reveal key={review.id} delay={index * 0.12}>
+              <TiltCard className="h-full rounded-[1.75rem]" max={5}>
+                <figure className="relative h-full overflow-hidden rounded-[1.75rem] bg-lait-fraise p-7">
+                  <span
+                    aria-hidden="true"
+                    className="font-display absolute -top-6 right-4 text-[9rem] leading-none text-framboise/15"
+                  >
+                    &ldquo;
+                  </span>
+                  <p className="text-mangue" aria-label="5 étoiles sur 5">
+                    {Array.from({ length: 5 }).map((_, star) => (
+                      <motion.span
+                        key={star}
+                        className="inline-block text-xl"
+                        initial={{ scale: 0, rotate: -90 }}
+                        whileInView={{ scale: 1, rotate: 0 }}
+                        viewport={{ once: true }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 12,
+                          delay: 0.3 + index * 0.12 + star * 0.07,
+                        }}
+                      >
+                        ★
+                      </motion.span>
+                    ))}
+                  </p>
+                  <blockquote className="relative mt-3 text-xl leading-snug font-medium">
+                    « {review.text} »
+                  </blockquote>
+                  <figcaption className="mt-5 flex items-center gap-3 text-[0.95rem] text-cacao">
+                    <span className="font-display grid h-10 w-10 place-items-center rounded-full bg-framboise text-lg text-white">
+                      {review.name[0]}
+                    </span>
+                    <span>
+                      <span className="block font-bold text-ganache">
+                        {review.name}
+                      </span>
+                      {review.city}
+                    </span>
+                  </figcaption>
+                </figure>
+              </TiltCard>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- Sur mesure : texte qui se colore au scroll ---------------- */
+
+function Story() {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start 85%", "end 45%"],
+  });
+  const words = storyText.split(" ");
+
+  return (
+    <section
+      id="histoire"
+      className="relative mx-auto w-[min(1100px,92%)] pt-32 pb-8 text-center"
+    >
+      <p
+        ref={ref}
+        className="display-lg mx-auto leading-[1.12]"
+        aria-label={storyText}
+      >
+        {words.map((word, index) => (
+          <StoryWord
+            key={`${word}-${index}`}
+            word={word}
+            index={index}
+            total={words.length}
+            progress={scrollYProgress}
+          />
+        ))}
+      </p>
+      <Reveal delay={0.1} className="mt-10 flex flex-wrap justify-center gap-3">
+        <Magnetic>
+          <Link href="/contact" className="btn btn-primary shine px-7">
+            Demander un devis
+          </Link>
+        </Magnetic>
+        <Magnetic>
+          <Link href="/livraison" className="btn btn-outline px-7">
+            Zones de livraison
+          </Link>
+        </Magnetic>
+      </Reveal>
+    </section>
+  );
+}
+
+function StoryWord({
+  word,
+  index,
+  total,
+  progress,
+}: {
+  word: string;
+  index: number;
+  total: number;
+  progress: MotionValue<number>;
+}) {
+  const reduce = useReducedMotion();
+  const start = index / total;
+  const opacity = useTransform(progress, [start, start + 1 / total], [0.15, 1]);
+  const highlight = ["anniversaire,", "baptême,", "mariage", "date,"].includes(
+    word,
+  );
+  return (
+    <motion.span
+      aria-hidden="true"
+      style={reduce ? undefined : { opacity }}
+      className={highlight ? "text-framboise" : undefined}
+    >
+      {word}{" "}
+    </motion.span>
   );
 }

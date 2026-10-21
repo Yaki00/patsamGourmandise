@@ -1,36 +1,60 @@
 "use client";
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useRef } from "react";
 import { formatPrice } from "@/data/products";
 import { useCart } from "@/context/cart-context";
 
-const subscribe = () => () => {};
-const getClientSnapshot = () => true;
-const getServerSnapshot = () => false;
-
 export function CartPill() {
-  const isHydrated = useSyncExternalStore(
-    subscribe,
-    getClientSnapshot,
-    getServerSnapshot
-  );
   const { totalItems, subtotal } = useCart();
-  const safeTotalItems = isHydrated ? totalItems : 0;
-  const safeSubtotal = isHydrated ? subtotal : 0;
+  const hasItems = totalItems > 0;
+  const ref = useRef<HTMLAnchorElement>(null);
+
+  // Rebond quand un produit arrive dans le panier.
+  useEffect(() => {
+    const bump = () => {
+      const el = ref.current;
+      if (!el) return;
+      el.classList.remove("cart-bump");
+      void el.offsetWidth;
+      el.classList.add("cart-bump");
+    };
+    window.addEventListener("cart:bump", bump);
+    return () => window.removeEventListener("cart:bump", bump);
+  }, []);
 
   return (
     <Link
+      ref={ref}
       href="/checkout"
-      className="glass inline-flex h-10 items-center gap-1 rounded-full px-2 text-xs font-bold text-[#6e4e5d] sm:min-h-11 sm:gap-2 sm:px-3"
-      aria-label={`Panier - ${safeTotalItems} article(s)`}
+      data-cart-target
+      className={`inline-flex h-11 items-center gap-2 rounded-full pr-4 pl-1.5 text-[0.95rem] font-bold transition-colors duration-300 ${
+        hasItems
+          ? "bg-framboise text-white hover:bg-framboise-deep"
+          : "bg-ganache text-chantilly hover:bg-cacao"
+      }`}
+      aria-label={`Panier : ${totalItems} article(s), ${formatPrice(subtotal)}`}
     >
-      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ff72b6] px-1 text-[10px] text-white">
-        {safeTotalItems}
+      <span
+        className={`relative inline-flex h-8 min-w-8 items-center justify-center overflow-hidden rounded-full px-1.5 text-sm ${
+          hasItems ? "bg-white text-framboise" : "bg-white/15 text-chantilly"
+        }`}
+      >
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.span
+            key={totalItems}
+            initial={{ y: 18, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -18, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          >
+            {totalItems}
+          </motion.span>
+        </AnimatePresence>
       </span>
-      <span className="hidden sm:inline">Panier</span>
-      <span className="hidden text-[#4f3340] sm:inline">
-        {formatPrice(safeSubtotal)}
+      <span className="tabular-nums">
+        {hasItems ? formatPrice(subtotal) : "Panier"}
       </span>
     </Link>
   );
