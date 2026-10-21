@@ -19,774 +19,23 @@ import {
   TiltCard,
 } from "@/components/fx";
 import { flyToCart, sprinkleBurst } from "@/lib/sprinkles";
+import {
+  Dynamic3DPreview,
+  FormulaBox3DPreview,
+  FormulaRow,
+  getPreviewOverlay,
+  ProductBox3D,
+} from "@/components/product-preview";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Product, formatPrice, productCatalog } from "@/data/products";
 import { useCart } from "@/context/cart-context";
 import { SiteHeader } from "@/components/site-header";
 
-type FormulaRow = { productId: string; flavor: string; qty: number };
-
 const categories = [
   "Tout",
   ...Array.from(new Set(productCatalog.map((item) => item.category))),
 ];
-
-const normalizeFlavor = (value: string) =>
-  value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-
-const getFlavorPalette = (flavor: string) => {
-  const value = normalizeFlavor(flavor);
-  if (value.includes("fraise") || value.includes("framboise")) {
-    return { main: "#ff7ebf", dark: "#c94986", light: "#ffd0e9" };
-  }
-  if (value.includes("choco") || value.includes("cacao")) {
-    return { main: "#8b5a3f", dark: "#4d2d1f", light: "#d7b59f" };
-  }
-  if (value.includes("caramel")) {
-    return { main: "#d2914f", dark: "#8a5528", light: "#ffd9a5" };
-  }
-  if (value.includes("vanille")) {
-    return { main: "#e8cf9c", dark: "#9a7a47", light: "#fff4d8" };
-  }
-  if (value.includes("pistache")) {
-    return { main: "#95d7aa", dark: "#4f9869", light: "#ddf6e6" };
-  }
-  if (value.includes("mango") || value.includes("citron")) {
-    return { main: "#ffba4b", dark: "#d68e1f", light: "#ffe9a8" };
-  }
-  return { main: "#c39cff", dark: "#7b5bbb", light: "#f2dfff" };
-};
-
-const getCookieFlavorDesign = (flavor: string) => {
-  const value = normalizeFlavor(flavor);
-  if (value.includes("fraise") || value.includes("framboise")) {
-    return {
-      type: "strawberry",
-      chips: 6,
-      chipColor: "#ff4d96",
-      swirlColor: "#ffd8ec",
-      crumbColor: "#ffd6e8",
-    };
-  }
-  if (value.includes("choco") || value.includes("cacao")) {
-    return {
-      type: "choco",
-      chips: 8,
-      chipColor: "#4a2e23",
-      swirlColor: "#bf9476",
-      crumbColor: "#c9a48a",
-    };
-  }
-  if (value.includes("caramel")) {
-    return {
-      type: "caramel",
-      chips: 5,
-      chipColor: "#9e5f35",
-      swirlColor: "#ffd08b",
-      crumbColor: "#f3c582",
-    };
-  }
-  if (value.includes("vanille")) {
-    return {
-      type: "vanilla",
-      chips: 4,
-      chipColor: "#6f583d",
-      swirlColor: "#fff3c6",
-      crumbColor: "#f2e3be",
-    };
-  }
-  if (value.includes("pistache")) {
-    return {
-      type: "pistachio",
-      chips: 5,
-      chipColor: "#4d8a60",
-      swirlColor: "#dff5e7",
-      crumbColor: "#c2e7cf",
-    };
-  }
-  return {
-    type: "classic",
-    chips: 5,
-    chipColor: "#6b4a34",
-    swirlColor: "#f4dfb7",
-    crumbColor: "#f3ddbb",
-  };
-};
-
-const getCategoryPalette = (category: Product["category"]) => {
-  if (category === "Trompe-l'œil") {
-    return { main: "#f7b6cf", dark: "#b8678f", light: "#ffe3f1" };
-  }
-  if (category === "Gâteaux") {
-    return { main: "#cba47a", dark: "#8a5b3b", light: "#f6e2c7" };
-  }
-  if (category === "Box") {
-    return { main: "#b9b8ff", dark: "#6f6cc2", light: "#e8e7ff" };
-  }
-  return { main: "#e2b184", dark: "#94603d", light: "#ffe8c7" };
-};
-
-const getGateauFlavorPalette = (flavor: string) => {
-  const value = normalizeFlavor(flavor);
-  if (value.includes("chocolat") || value.includes("choco")) {
-    return {
-      sponge: "#8e5b3f",
-      spongeDark: "#573422",
-      cream: "#f0dcc7",
-      glaze: "#3f241a",
-      topping: "#6f402d",
-    };
-  }
-  if (
-    value.includes("mango") ||
-    value.includes("mangue") ||
-    value.includes("passion")
-  ) {
-    return {
-      sponge: "#efb15d",
-      spongeDark: "#b5752c",
-      cream: "#fff5cf",
-      glaze: "#ffbe45",
-      topping: "#ff8c34",
-    };
-  }
-  if (
-    value.includes("fraise") ||
-    value.includes("fruits rouges") ||
-    value.includes("framboise")
-  ) {
-    return {
-      sponge: "#dc8ba7",
-      spongeDark: "#a85d7a",
-      cream: "#ffe9f1",
-      glaze: "#d84980",
-      topping: "#a31f52",
-    };
-  }
-  return {
-    sponge: "#c7a27d",
-    spongeDark: "#8d6543",
-    light: "#efd4b5",
-    cream: "#fff4e1",
-    glaze: "#d8b188",
-    topping: "#9b6a46",
-  };
-};
-
-function LayerCakeVisual({ flavor }: { flavor: string }) {
-  const p = getGateauFlavorPalette(flavor);
-  return (
-    <svg viewBox="0 0 220 220" className="layer-cake-svg" aria-hidden="true">
-      <defs>
-        <linearGradient id="cakeSponge" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor={p.sponge} />
-          <stop offset="100%" stopColor={p.spongeDark} />
-        </linearGradient>
-        <linearGradient id="cakeGlaze" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor={p.glaze} />
-          <stop offset="100%" stopColor={p.topping} />
-        </linearGradient>
-      </defs>
-
-      <ellipse cx="110" cy="195" rx="72" ry="14" fill="rgba(56,32,40,.18)" />
-
-      <ellipse cx="110" cy="72" rx="66" ry="20" fill={p.cream} />
-      <rect x="44" y="72" width="132" height="34" fill="url(#cakeSponge)" />
-      <ellipse
-        cx="110"
-        cy="106"
-        rx="66"
-        ry="20"
-        fill={p.spongeDark}
-        opacity="0.95"
-      />
-
-      <ellipse cx="110" cy="106" rx="66" ry="18" fill={p.cream} />
-      <rect x="44" y="106" width="132" height="32" fill="url(#cakeSponge)" />
-      <ellipse
-        cx="110"
-        cy="138"
-        rx="66"
-        ry="18"
-        fill={p.spongeDark}
-        opacity="0.95"
-      />
-
-      <ellipse cx="110" cy="138" rx="66" ry="18" fill={p.cream} />
-      <rect x="44" y="138" width="132" height="34" fill="url(#cakeSponge)" />
-      <ellipse cx="110" cy="172" rx="66" ry="18" fill={p.spongeDark} />
-
-      <ellipse cx="110" cy="68" rx="66" ry="22" fill="url(#cakeGlaze)" />
-      <path
-        d="M57 69c6 6 3 15 0 21M84 69c5 5 3 13 1 18M112 69c5 6 4 15 1 22M138 68c6 6 5 16 2 21M162 69c6 7 4 16 1 21"
-        stroke={p.glaze}
-        strokeWidth="7"
-        strokeLinecap="round"
-      />
-
-      <circle cx="84" cy="58" r="7" fill={p.topping} />
-      <circle cx="110" cy="53" r="8" fill={p.topping} />
-      <circle cx="136" cy="58" r="7" fill={p.topping} />
-      <ellipse cx="84" cy="56" rx="2.7" ry="1.5" fill="rgba(255,255,255,.45)" />
-      <ellipse cx="110" cy="51" rx="3" ry="1.6" fill="rgba(255,255,255,.45)" />
-      <ellipse
-        cx="136"
-        cy="56"
-        rx="2.7"
-        ry="1.5"
-        fill="rgba(255,255,255,.45)"
-      />
-    </svg>
-  );
-}
-
-const getTrompeFlavorKind = (flavor: string) => {
-  const value = normalizeFlavor(flavor);
-  if (value.includes("framboise") || value.includes("fraise")) {
-    return "raspberry";
-  }
-  if (
-    value.includes("mango") ||
-    value.includes("mangue") ||
-    value.includes("passion")
-  ) {
-    return "mango";
-  }
-  if (value.includes("pistache")) {
-    return "pistachio";
-  }
-  return "classic";
-};
-
-const getTrompePalette = (flavor: string) => {
-  const kind = getTrompeFlavorKind(flavor);
-  if (kind === "mango") {
-    return { main: "#ffb642", dark: "#c67019", light: "#ffe59a" };
-  }
-  if (kind === "pistachio") {
-    return { main: "#9bcf88", dark: "#4f7f3e", light: "#e3f2cc" };
-  }
-  if (kind === "raspberry") {
-    return { main: "#df3b78", dark: "#8f1f4a", light: "#ffc7df" };
-  }
-  return { main: "#f2a7cd", dark: "#a25f83", light: "#ffe2f1" };
-};
-
-function TrompeFruitVisual({ flavor }: { flavor: string }) {
-  const kind = getTrompeFlavorKind(flavor);
-
-  if (kind === "mango") {
-    return (
-      <svg viewBox="0 0 200 200" className="trompe-svg" aria-hidden="true">
-        <defs>
-          <linearGradient id="mangoBody" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#ffe49f" />
-            <stop offset="52%" stopColor="#ffb540" />
-            <stop offset="100%" stopColor="#e47f2f" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M57 38c34-13 90 3 103 42 13 39-18 84-57 94-39 9-78-17-84-54C13 83 28 48 57 38Z"
-          fill="url(#mangoBody)"
-          stroke="#d17122"
-          strokeWidth="3"
-        />
-        <ellipse cx="128" cy="128" rx="32" ry="18" fill="rgba(201,82,23,.28)" />
-        <path
-          d="M130 26c22-7 34 16 23 31-14 19-39 8-42-10-2-10 7-18 19-21Z"
-          fill="#74be75"
-          stroke="#447a45"
-          strokeWidth="3"
-        />
-        <path d="M129 41c8 2 14 5 20 11" stroke="#ddffd9" strokeWidth="2" />
-        <ellipse cx="80" cy="62" rx="20" ry="10" fill="rgba(255,255,255,.38)" />
-      </svg>
-    );
-  }
-
-  if (kind === "pistachio") {
-    return (
-      <svg viewBox="0 0 200 200" className="trompe-svg" aria-hidden="true">
-        <defs>
-          <linearGradient
-            id="pistachioShell"
-            x1="0%"
-            y1="0%"
-            x2="100%"
-            y2="100%"
-          >
-            <stop offset="0%" stopColor="#ecf6d0" />
-            <stop offset="58%" stopColor="#9bc97d" />
-            <stop offset="100%" stopColor="#6f9158" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M40 84c0-33 29-58 62-58 35 0 59 28 59 61 0 41-31 80-75 80-27 0-46-22-46-42 0-11 6-25 22-31 12-5 21-3 28 2"
-          fill="url(#pistachioShell)"
-          stroke="#6e8b53"
-          strokeWidth="3"
-        />
-        <path
-          d="M74 76c17-15 49-9 58 11 5 13-3 25-16 30-19 6-36-2-43-15"
-          fill="none"
-          stroke="#51703f"
-          strokeWidth="5"
-          strokeLinecap="round"
-        />
-        <circle cx="88" cy="62" r="3.2" fill="#7ca862" />
-        <circle cx="102" cy="54" r="2.8" fill="#7ca862" />
-        <circle cx="116" cy="58" r="3" fill="#7ca862" />
-        <ellipse cx="74" cy="52" rx="16" ry="8" fill="rgba(255,255,255,.32)" />
-      </svg>
-    );
-  }
-
-  const berryDots = [
-    [74, 48],
-    [96, 45],
-    [118, 50],
-    [62, 66],
-    [85, 65],
-    [107, 64],
-    [129, 67],
-    [52, 86],
-    [74, 84],
-    [96, 84],
-    [118, 84],
-    [140, 86],
-    [60, 106],
-    [82, 105],
-    [104, 105],
-    [126, 105],
-    [70, 126],
-    [92, 124],
-    [114, 124],
-  ];
-
-  return (
-    <svg viewBox="0 0 200 200" className="trompe-svg" aria-hidden="true">
-      <defs>
-        <radialGradient id="raspBerry" cx="35%" cy="30%" r="70%">
-          <stop offset="0%" stopColor="#ffb8d5" />
-          <stop offset="55%" stopColor="#db3a77" />
-          <stop offset="100%" stopColor="#8f1f4a" />
-        </radialGradient>
-      </defs>
-      {berryDots.map(([x, y], idx) => (
-        <circle
-          key={`berry-dot-${idx}`}
-          cx={x}
-          cy={y}
-          r={11}
-          fill="url(#raspBerry)"
-          stroke="#7f1c44"
-          strokeWidth="1.8"
-        />
-      ))}
-      <path
-        d="M85 33c8-10 24-10 32 0-11 7-21 7-32 0Z"
-        fill="#6faf63"
-        stroke="#4c8248"
-        strokeWidth="2"
-      />
-      <ellipse cx="86" cy="58" rx="18" ry="8" fill="rgba(255,255,255,.28)" />
-    </svg>
-  );
-}
-
-const getPreviewOverlay = (category: Product["category"]) => {
-  if (category === "Trompe-l'œil") {
-    return "from-[#fde3ea] to-[#e4f1dc]";
-  }
-  if (category === "Gâteaux") {
-    return "from-[#fbe7e4] to-[#fdf0d8]";
-  }
-  if (category === "Box") {
-    return "from-[#efe9f8] to-[#fbe7e4]";
-  }
-  return "from-[#fdeedd] to-[#fbe7e4]";
-};
-
-function ThreeDItem({
-  category,
-  flavor,
-  index,
-}: {
-  category: Product["category"];
-  flavor: string;
-  index: number;
-}) {
-  if (category === "Trompe-l'œil") {
-    return (
-      <div className="trompe-realistic float-pop">
-        <TrompeFruitVisual flavor={flavor} />
-      </div>
-    );
-  }
-
-  if (category === "Gâteaux") {
-    return (
-      <div className="layer-cake-realistic float-pop">
-        <LayerCakeVisual flavor={flavor} />
-      </div>
-    );
-  }
-
-  const palette =
-    category === "Cookies"
-      ? getFlavorPalette(flavor)
-      : getCategoryPalette(category);
-  const style = {
-    "--tone-main": palette.main,
-    "--tone-dark": palette.dark,
-    "--tone-light": palette.light,
-  } as CSSProperties;
-
-  if (category === "Cookies") {
-    const cookieDesign = getCookieFlavorDesign(flavor);
-    return (
-      <div
-        className={`cookie-3d float-pop cookie-${cookieDesign.type}`}
-        style={
-          {
-            ...style,
-            "--chip-color": cookieDesign.chipColor,
-            "--swirl-color": cookieDesign.swirlColor,
-            "--crumb-color": cookieDesign.crumbColor,
-          } as CSSProperties
-        }
-      >
-        <span className="cookie-side" />
-        <span className="cookie-rim" />
-        <span className="cookie-highlight" />
-        <span className="cookie-swirl" />
-        {Array.from({ length: cookieDesign.chips }).map((_, dot) => (
-          <span
-            key={`${index}-${dot}`}
-            className="cookie-chip"
-            style={
-              {
-                "--chip-x": `${15 + ((dot * 17 + index * 8) % 60)}%`,
-                "--chip-y": `${14 + ((dot * 23 + index * 6) % 62)}%`,
-              } as CSSProperties
-            }
-          />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="cake-3d float-pop" style={style}>
-      <span className="cake-top" />
-      <span className="cake-side" />
-    </div>
-  );
-}
-
-function ProductBox3D({
-  category,
-  flavor,
-  label,
-}: {
-  category: Product["category"];
-  flavor: string;
-  label: string;
-}) {
-  const isSignatureBox = category === "Box";
-  const palette =
-    category === "Cookies"
-      ? getFlavorPalette(flavor)
-      : category === "Trompe-l'œil"
-        ? getTrompePalette(flavor)
-        : getCategoryPalette(category);
-  const style = {
-    "--tone-main": palette.main,
-    "--tone-dark": palette.dark,
-    "--tone-light": palette.light,
-  } as CSSProperties;
-
-  return (
-    <div
-      className={`box-3d float-pop ${isSignatureBox ? "box-signature" : "box-premium"}`}
-      style={style}
-    >
-      <span className="box-lid" />
-      <span className="box-body" />
-      {isSignatureBox && (
-        <>
-          <span className="box-cream-wave" />
-          <span className="box-sticker">signature</span>
-          <span className="box-spark spark-a" />
-          <span className="box-spark spark-b" />
-        </>
-      )}
-      <p className="box-label">{label}</p>
-    </div>
-  );
-}
-
-function Dynamic3DPreview({
-  product,
-  flavor,
-  qty,
-}: {
-  product: Product;
-  flavor: string;
-  qty: number;
-}) {
-  const safeQty = Math.max(1, qty);
-
-  return (
-    <div className="preview-scene">
-      {product.category === "Cookies" ? (
-        <>
-          <div className="single-model-stage">
-            <span className="qty-chip">x{safeQty}</span>
-
-            {safeQty <= 3 && (
-              <div className="cookie-lineup">
-                {Array.from({ length: safeQty }).map((_, idx) => (
-                  <ThreeDItem
-                    key={`cookie-single-${idx}`}
-                    category="Cookies"
-                    flavor={flavor}
-                    index={idx}
-                  />
-                ))}
-              </div>
-            )}
-
-            {safeQty >= 4 && safeQty <= 7 && (
-              <div className="cookie-pile">
-                {Array.from({ length: 6 }).map((_, idx) => (
-                  <ThreeDItem
-                    key={`cookie-pile-${idx}`}
-                    category="Cookies"
-                    flavor={flavor}
-                    index={idx}
-                  />
-                ))}
-              </div>
-            )}
-
-            {safeQty >= 8 && safeQty <= 14 && (
-              <div className="model-scale">
-                <ProductBox3D
-                  category="Cookies"
-                  flavor={flavor}
-                  label={product.name}
-                />
-              </div>
-            )}
-
-            {safeQty >= 15 && (
-              <div className="box-stack">
-                <ProductBox3D
-                  category="Cookies"
-                  flavor={flavor}
-                  label={product.name}
-                />
-                <ProductBox3D
-                  category="Cookies"
-                  flavor={flavor}
-                  label={product.name}
-                />
-                <ProductBox3D
-                  category="Cookies"
-                  flavor={flavor}
-                  label={product.name}
-                />
-              </div>
-            )}
-          </div>
-        </>
-      ) : product.category === "Trompe-l'œil" ? (
-        <>
-          <div className="single-model-stage">
-            <span className="qty-chip">x{safeQty}</span>
-
-            {safeQty <= 3 && (
-              <div className="trompe-lineup">
-                {Array.from({ length: safeQty }).map((_, idx) => (
-                  <ThreeDItem
-                    key={`trompe-single-${idx}`}
-                    category="Trompe-l'œil"
-                    flavor={flavor}
-                    index={idx}
-                  />
-                ))}
-              </div>
-            )}
-
-            {safeQty >= 4 && safeQty <= 7 && (
-              <div className="trompe-pile">
-                {Array.from({ length: 5 }).map((_, idx) => (
-                  <ThreeDItem
-                    key={`trompe-pile-${idx}`}
-                    category="Trompe-l'œil"
-                    flavor={flavor}
-                    index={idx}
-                  />
-                ))}
-              </div>
-            )}
-
-            {safeQty >= 8 && safeQty <= 14 && (
-              <div className="model-scale">
-                <ProductBox3D
-                  category="Trompe-l'œil"
-                  flavor={flavor}
-                  label={flavor}
-                />
-              </div>
-            )}
-
-            {safeQty >= 15 && (
-              <div className="box-stack">
-                <ProductBox3D
-                  category="Trompe-l'œil"
-                  flavor={flavor}
-                  label={flavor}
-                />
-                <ProductBox3D
-                  category="Trompe-l'œil"
-                  flavor={flavor}
-                  label={flavor}
-                />
-                <ProductBox3D
-                  category="Trompe-l'œil"
-                  flavor={flavor}
-                  label={flavor}
-                />
-              </div>
-            )}
-          </div>
-        </>
-      ) : product.category === "Gâteaux" ? (
-        <>
-          <div className="single-model-stage">
-            <span className="qty-chip">x{safeQty}</span>
-
-            {safeQty <= 3 && (
-              <div className="gateaux-lineup">
-                {Array.from({ length: safeQty }).map((_, idx) => (
-                  <ThreeDItem
-                    key={`gateau-single-${idx}`}
-                    category="Gâteaux"
-                    flavor={flavor}
-                    index={idx}
-                  />
-                ))}
-              </div>
-            )}
-
-            {safeQty >= 4 && safeQty <= 7 && (
-              <div className="gateaux-pile">
-                {Array.from({ length: 5 }).map((_, idx) => (
-                  <ThreeDItem
-                    key={`gateau-pile-${idx}`}
-                    category="Gâteaux"
-                    flavor={flavor}
-                    index={idx}
-                  />
-                ))}
-              </div>
-            )}
-
-            {safeQty >= 8 && safeQty <= 14 && (
-              <div className="model-scale">
-                <ProductBox3D
-                  category="Gâteaux"
-                  flavor={flavor}
-                  label={product.name}
-                />
-              </div>
-            )}
-
-            {safeQty >= 15 && (
-              <div className="box-stack">
-                <ProductBox3D
-                  category="Gâteaux"
-                  flavor={flavor}
-                  label={product.name}
-                />
-                <ProductBox3D
-                  category="Gâteaux"
-                  flavor={flavor}
-                  label={product.name}
-                />
-                <ProductBox3D
-                  category="Gâteaux"
-                  flavor={flavor}
-                  label={product.name}
-                />
-              </div>
-            )}
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="single-model-stage">
-            <div className="model-scale">
-              <ProductBox3D
-                category={product.category}
-                flavor={flavor}
-                label={product.name}
-              />
-            </div>
-            <span className="qty-chip">x{safeQty}</span>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function FormulaBox3DPreview({ rows }: { rows: FormulaRow[] }) {
-  const activeRows = rows
-    .map((row) => {
-      const product = productCatalog.find((item) => item.id === row.productId);
-      if (!product || row.qty <= 0) return null;
-      return { product, flavor: row.flavor, qty: row.qty };
-    })
-    .filter((row): row is NonNullable<typeof row> => Boolean(row));
-
-  const miniItems = activeRows.flatMap((row) =>
-    Array.from({ length: Math.min(2, row.qty) }).map((_, idx) => ({
-      key: `${row.product.id}-${row.flavor}-${idx}`,
-      category: row.product.category,
-      flavor: row.flavor,
-    })),
-  );
-
-  return (
-    <div className="preview-scene">
-      <div className="formula-preview-stage">
-        <div className="formula-box-main">
-          <ProductBox3D category="Box" flavor="Mix surprise" label="BOX MIX" />
-        </div>
-        <div className="formula-mini-items">
-          {miniItems.slice(0, 4).map((item, idx) => (
-            <ThreeDItem
-              key={item.key}
-              category={item.category}
-              flavor={item.flavor}
-              index={idx}
-            />
-          ))}
-        </div>
-      </div>
-      <p className="mt-3 text-sm font-bold text-cacao">
-        {activeRows.reduce((sum, row) => sum + row.qty, 0)} pièce(s) dans la box
-      </p>
-    </div>
-  );
-}
 
 function CommanderPageContent() {
   const searchParams = useSearchParams();
@@ -972,6 +221,20 @@ function CommanderPageContent() {
   };
 
   const previewRef = useRef<HTMLDivElement>(null);
+  const [qtyDirection, setQtyDirection] = useState(1);
+  const changeQty = (next: number) => {
+    const value = Math.min(30, Math.max(1, next));
+    setQtyDirection(value >= modalQty ? 1 : -1);
+    setModalQty(value);
+  };
+  // Raccourcis : 1 article, 1 boîte, 2 boîtes (cookies et trompe-l'œil).
+  const packSize =
+    selectedProduct?.category === "Cookies"
+      ? 6
+      : selectedProduct?.category === "Trompe-l'œil"
+        ? 4
+        : 0;
+  const quickPicks = packSize ? [1, packSize, packSize * 2] : [];
   const reduce = useReducedMotion();
 
   const decreaseCartQty = (key: string) => {
@@ -1488,7 +751,7 @@ function CommanderPageContent() {
                   <button
                     type="button"
                     onClick={() => setModalOpen(false)}
-                    className="btn btn-soft btn-round"
+                    className="btn btn-soft btn-round max-lg:hidden"
                     aria-label="Fermer"
                   >
                     ×
@@ -1529,104 +792,140 @@ function CommanderPageContent() {
                   </div>
                 </fieldset>
 
-                <div className="mt-6">
-                  <p className="field-label" id="qty-label">
-                    Quantité
-                  </p>
-                  <div
-                    className="mt-2 flex items-center gap-2"
-                    role="group"
-                    aria-labelledby="qty-label"
-                  >
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setModalQty((value) => Math.max(1, value - 1))
-                      }
-                      className="btn btn-soft btn-round"
-                      aria-label="Diminuer la quantité"
-                    >
-                      −
-                    </button>
-                    <input
-                      type="number"
-                      min={1}
-                      max={30}
-                      value={modalQty}
-                      aria-label="Quantité"
-                      onChange={(event) => {
-                        const value = Number(event.target.value);
-                        setModalQty(
-                          Number.isNaN(value)
-                            ? 1
-                            : Math.min(30, Math.max(1, value)),
-                        );
-                      }}
-                      className="field mt-0! w-20 text-center font-bold"
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setModalQty((value) => Math.min(30, value + 1))
-                      }
-                      className="btn btn-primary btn-round shadow-none!"
-                      aria-label="Augmenter la quantité"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-8 flex items-center justify-between gap-4 border-t-2 border-ganache pt-5">
-                  <div>
-                    <p className="text-sm text-cacao">
-                      {modalQty} × {modalFlavor}
+                {/* Sur mobile : barre collée en bas pour voir le présentoir en ajoutant */}
+                <div className="max-lg:sticky max-lg:bottom-0 max-lg:z-20 max-lg:-mx-6 max-lg:-mb-6 max-lg:mt-6 max-lg:bg-chantilly max-lg:px-6 max-lg:pt-4 max-lg:pb-5 max-lg:shadow-[0_-14px_24px_-18px_rgba(59,29,23,.5)] sm:max-lg:-mx-8 sm:max-lg:-mb-8 sm:max-lg:px-8">
+                  <div className="mt-6 max-lg:mt-0">
+                    <p className="field-label max-lg:sr-only" id="qty-label">
+                      Quantité
                     </p>
-                    <motion.p
-                      key={modalQty}
-                      initial={reduce ? false : { y: -10, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      className="text-2xl font-extrabold tabular-nums"
-                    >
-                      {formatPrice(selectedProduct.price * modalQty)}
-                    </motion.p>
+                    <div className="mt-2 flex flex-wrap items-center gap-3 max-lg:mt-0">
+                      <div
+                        className="inline-flex items-center gap-1 rounded-full bg-white p-1 shadow-[inset_0_0_0_1.5px_var(--line)]"
+                        role="group"
+                        aria-labelledby="qty-label"
+                      >
+                        <motion.button
+                          type="button"
+                          whileTap={{ scale: 0.8 }}
+                          onClick={() => changeQty(modalQty - 1)}
+                          disabled={modalQty <= 1}
+                          className="grid h-11 w-11 place-items-center rounded-full text-2xl font-bold text-ganache transition-colors hover:bg-lait-fraise disabled:opacity-30"
+                          aria-label="Retirer un article"
+                        >
+                          −
+                        </motion.button>
+                        <span
+                          className="relative grid h-11 w-14 place-items-center overflow-hidden text-2xl font-extrabold tabular-nums"
+                          aria-live="polite"
+                        >
+                          <AnimatePresence
+                            mode="popLayout"
+                            initial={false}
+                            custom={qtyDirection}
+                          >
+                            <motion.span
+                              key={modalQty}
+                              custom={qtyDirection}
+                              variants={{
+                                enter: (dir: number) => ({
+                                  y: dir > 0 ? 28 : -28,
+                                  opacity: 0,
+                                }),
+                                center: { y: 0, opacity: 1 },
+                                leave: (dir: number) => ({
+                                  y: dir > 0 ? -28 : 28,
+                                  opacity: 0,
+                                }),
+                              }}
+                              initial="enter"
+                              animate="center"
+                              exit="leave"
+                              transition={{
+                                type: "spring",
+                                stiffness: 500,
+                                damping: 32,
+                              }}
+                            >
+                              {modalQty}
+                            </motion.span>
+                          </AnimatePresence>
+                        </span>
+                        <motion.button
+                          type="button"
+                          whileTap={{ scale: 0.8 }}
+                          onClick={() => changeQty(modalQty + 1)}
+                          disabled={modalQty >= 30}
+                          className="grid h-11 w-11 place-items-center rounded-full bg-framboise text-2xl font-bold text-white transition-colors hover:bg-framboise-deep disabled:opacity-30"
+                          aria-label="Ajouter un article"
+                        >
+                          +
+                        </motion.button>
+                      </div>
+                      {quickPicks.map((value) => (
+                        <motion.button
+                          key={value}
+                          type="button"
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => changeQty(value)}
+                          aria-pressed={modalQty === value}
+                          className="rounded-full px-3.5 py-2 text-sm font-bold max-lg:hidden text-ganache shadow-[inset_0_0_0_1.5px_var(--line)] transition-colors hover:shadow-[inset_0_0_0_1.5px_var(--ganache)] aria-pressed:bg-ganache aria-pressed:text-chantilly"
+                        >
+                          {value === 1
+                            ? "1 seul"
+                            : `${value} (${value / quickPicks[1]} boîte${value / quickPicks[1] > 1 ? "s" : ""})`}
+                        </motion.button>
+                      ))}
+                    </div>
                   </div>
-                  <Magnetic>
-                    <button
-                      type="button"
-                      onClick={confirmModalSelection}
-                      className="btn btn-primary shine"
-                    >
-                      Ajouter au panier
-                    </button>
-                  </Magnetic>
+
+                  <div className="mt-8 flex items-center justify-between gap-4 border-t-2 border-ganache pt-5 max-lg:mt-3 max-lg:border-t-0 max-lg:pt-0">
+                    <div>
+                      <p className="text-sm text-cacao max-lg:hidden">
+                        {modalQty} × {modalFlavor}
+                      </p>
+                      <motion.p
+                        key={modalQty}
+                        initial={reduce ? false : { y: -10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        className="text-2xl font-extrabold tabular-nums"
+                      >
+                        {formatPrice(selectedProduct.price * modalQty)}
+                      </motion.p>
+                    </div>
+                    <Magnetic>
+                      <button
+                        type="button"
+                        onClick={confirmModalSelection}
+                        className="btn btn-primary shine"
+                      >
+                        Ajouter au panier
+                      </button>
+                    </Magnetic>
+                  </div>
                 </div>
               </div>
 
               <div
                 ref={previewRef}
-                className={`relative flex flex-col justify-center bg-gradient-to-br p-6 sm:p-8 ${getPreviewOverlay(selectedProduct.category)}`}
+                className={`relative order-first flex flex-col justify-center bg-gradient-to-br p-5 sm:p-8 lg:order-none ${getPreviewOverlay(selectedProduct.category)}`}
               >
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="btn btn-soft btn-round absolute top-4 right-4 z-20 lg:hidden"
+                  aria-label="Fermer"
+                >
+                  ×
+                </button>
                 <p className="text-sm font-semibold text-cacao">
                   Aperçu en direct
                 </p>
-                <p className="display-md mt-1">
-                  {modalQty} {modalQty > 1 ? "pièces" : "pièce"}
-                </p>
-                <motion.div
-                  key={`${modalFlavor}-${modalQty}`}
-                  initial={
-                    reduce ? false : { scale: 0.9, rotate: -3, opacity: 0.4 }
-                  }
-                  animate={{ scale: 1, rotate: 0, opacity: 1 }}
-                  transition={{ type: "spring", stiffness: 380, damping: 14 }}
-                >
-                  <Dynamic3DPreview
-                    product={selectedProduct}
-                    flavor={modalFlavor}
-                    qty={modalQty}
-                  />
-                </motion.div>
+                <p className="display-md mt-1 mb-4">{modalFlavor}</p>
+                <Dynamic3DPreview
+                  product={selectedProduct}
+                  flavor={modalFlavor}
+                  qty={modalQty}
+                />
               </div>
             </motion.div>
           </motion.div>
