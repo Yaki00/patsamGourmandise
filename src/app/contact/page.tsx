@@ -1,77 +1,101 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 
+const channels = [
+  {
+    label: "Email",
+    value: "contact@patsam-gourmandise.fr",
+    href: "mailto:contact@patsam-gourmandise.fr",
+  },
+  { label: "Téléphone", value: "06 00 00 00 00", href: "tel:+33600000000" },
+  { label: "Snapchat", value: "patsam78" },
+];
+
 export default function ContactPage() {
   return (
-    <div className="relative min-h-screen overflow-x-clip pb-10">
+    <div className="relative min-h-screen overflow-x-clip">
       <SiteHeader currentPage="contact" />
-      <main className="mx-auto w-[min(1000px,94%)] py-6 sm:w-[min(1000px,92%)] sm:py-10">
-        <div className="glass rounded-3xl p-4 sm:p-8">
-        <p className="mb-2 text-xs font-extrabold tracking-[0.16em] text-[#966a7d] uppercase">
-          Contact
-        </p>
-        <h1 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
-          Parlons de ta commande
-        </h1>
-        <p className="mt-3 max-w-2xl text-[#715260]">
-          Pour un anniversaire, un evenement ou une creation sur mesure, envoie
-          nous les details et on revient vers toi rapidement.
-        </p>
+      <main className="mx-auto grid w-[min(1100px,92%)] items-start gap-12 pt-12 sm:pt-16 lg:grid-cols-[.85fr_1.15fr]">
+        <section className="hero-in">
+          <h1 className="display-lg">Parlons de votre gâteau</h1>
+          <p className="lede mt-4">
+            Anniversaire, événement ou création sur mesure : envoyez-nous la
+            date, le nombre de parts et vos envies. On revient vers vous
+            rapidement.
+          </p>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="glass rounded-2xl p-4">
-            <p className="text-sm font-bold text-[#5e424f]">Email</p>
-            <p className="text-sm text-[#745867]">contact@patsam-gourmandise.fr</p>
-          </div>
-          <div className="glass rounded-2xl p-4">
-            <p className="text-sm font-bold text-[#5e424f]">Telephone</p>
-            <p className="text-sm text-[#745867]">06 00 00 00 00</p>
-          </div>
-          <div className="glass rounded-2xl p-4">
-            <p className="text-sm font-bold text-[#5e424f]">Snapchat</p>
-            <p className="text-sm text-[#745867]">patsam78</p>
-          </div>
-        </div>
+          <ul className="mt-10 grid gap-1">
+            {channels.map((channel) => (
+              <li key={channel.label} className="border-b border-line py-4">
+                <p className="text-sm font-semibold text-cacao">
+                  {channel.label}
+                </p>
+                {channel.href ? (
+                  <a
+                    href={channel.href}
+                    className="text-xl font-extrabold text-ganache hover:text-framboise"
+                  >
+                    {channel.value}
+                  </a>
+                ) : (
+                  <p className="text-xl font-extrabold text-ganache">
+                    {channel.value}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
 
-        <form className="mt-6 grid gap-3">
-          <input
-            placeholder="Nom complet"
-            className="rounded-xl border border-white/80 bg-white/85 px-3 py-2 text-sm text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
-          />
-          <input
-            placeholder="Email"
-            type="email"
-            className="rounded-xl border border-white/80 bg-white/85 px-3 py-2 text-sm text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
-          />
-          <select
-            defaultValue="commande"
-            className="rounded-xl border border-white/80 bg-white/85 px-3 py-2 text-sm text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
-          >
-            <option value="commande">Objet : Demande de commande</option>
-            <option value="personnalisation">Objet : Personnalisation produit</option>
-            <option value="livraison">Objet : Question livraison</option>
-            <option value="devis">Objet : Devis evenement</option>
-            <option value="autre">Objet : Autre demande</option>
-          </select>
-          <textarea
-            placeholder="Ton besoin (date, quantite, theme, parfums...)"
-            rows={5}
-            className="rounded-xl border border-white/80 bg-white/85 px-3 py-2 text-sm text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
-          />
+          <p className="mt-8 text-cacao">
+            Vous savez déjà ce que vous voulez ?{" "}
+            <Link
+              href="/commander"
+              className="font-bold text-framboise underline"
+            >
+              Commandez directement
+            </Link>
+            .
+          </p>
+        </section>
+
+        <form className="surface grid gap-4 p-6 sm:p-8">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="field-label">
+              Nom complet
+              <input autoComplete="name" className="field" />
+            </label>
+            <label className="field-label">
+              Email
+              <input type="email" autoComplete="email" className="field" />
+            </label>
+          </div>
+          <label className="field-label">
+            Objet
+            <select defaultValue="commande" className="field">
+              <option value="commande">Demande de commande</option>
+              <option value="personnalisation">
+                Personnalisation d&apos;un produit
+              </option>
+              <option value="livraison">Question sur la livraison</option>
+              <option value="devis">Devis pour un événement</option>
+              <option value="autre">Autre demande</option>
+            </select>
+          </label>
+          <label className="field-label">
+            Votre demande
+            <textarea
+              placeholder="Date, nombre de parts, thème, parfums…"
+              rows={6}
+              className="field"
+            />
+          </label>
           <button
             type="button"
-            className="w-full rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] sm:w-fit"
+            className="btn btn-primary mt-2 w-full sm:w-fit"
           >
             Envoyer ma demande
           </button>
         </form>
-
-        <div className="mt-7">
-          <Link href="/commander" className="text-sm font-bold text-[#f24ea5]">
-            Ou passer directement une commande
-          </Link>
-        </div>
-        </div>
       </main>
     </div>
   );

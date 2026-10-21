@@ -1,567 +1,519 @@
 "use client";
 
-import { KeyboardEvent, useEffect, useMemo, useState } from "react";
+import { CSSProperties, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { formatPrice, Product, productCatalog } from "@/data/products";
+import {
+  formatPrice,
+  getDeliveryDelay,
+  Product,
+  productCatalog,
+} from "@/data/products";
 import { SiteHeader } from "@/components/site-header";
 
 const catalog = productCatalog;
-const carouselProducts = [...catalog, ...catalog];
-const bestSellerProducts = [catalog[0], catalog[6], catalog[1]].filter(
-  (item): item is (typeof catalog)[number] => Boolean(item)
-);
+const heroProduct =
+  catalog.find((item) => item.id === "layer-cake-signature") ?? catalog[0];
+const heroSideProduct =
+  catalog.find((item) => item.id === "cookie-triple-choco") ?? catalog[0];
+const bestSellerProducts = [
+  "cookie-triple-choco",
+  "layer-cake-signature",
+  "trompe-loeil-framboise",
+]
+  .map((id) => catalog.find((item) => item.id === id))
+  .filter((item): item is Product => Boolean(item));
+// Mis en avant sur 2 colonnes quand tout le catalogue est affiché.
+const featuredIds = ["trompe-loeil-framboise", "layer-cake-signature"];
+const categories = [
+  "Tout",
+  ...Array.from(new Set(catalog.map((item) => item.category))),
+];
+
 const reviews = [
   {
     id: "avis-1",
-    name: "Ines B.",
-    text: "Layer cake incroyable, visuel magnifique et gout ultra frais. Toute la famille a valide.",
-    rating: 5,
+    name: "Inès B.",
+    text: "Layer cake incroyable, visuel magnifique et goût ultra frais. Toute la famille a validé.",
     city: "Houilles",
   },
   {
     id: "avis-2",
     name: "Sabrina M.",
-    text: "Commande simple, livraison rapide et produits conformes aux photos. Je recommande a 100%.",
-    rating: 5,
+    text: "Commande simple, livraison rapide et produits conformes aux photos. Je recommande à 100 %.",
     city: "Nanterre",
   },
   {
     id: "avis-3",
     name: "Yassine K.",
-    text: "Les trompe-l'oeil sont bluffants. Service tres pro et super communication avant la livraison.",
-    rating: 5,
+    text: "Les trompe-l'œil sont bluffants. Service très pro et super communication avant la livraison.",
     city: "Bezons",
   },
 ];
 
+const steps = [
+  {
+    title: "Choisissez vos douceurs",
+    text: "Parfums, quantités, box à composer : tout se règle depuis la page Commander.",
+  },
+  {
+    title: "Réservez un créneau",
+    text: "Livraison ou retrait à l'atelier, du matin au soir. Les trompe-l'œil se réservent la veille.",
+  },
+  {
+    title: "On sonne chez vous",
+    text: "Préparé le jour même, livré frais dans un rayon de 50 km autour de Houilles.",
+  },
+];
+
+const bandStyle = (color: string) => ({ "--band": color }) as CSSProperties;
+
 export default function Home() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [category, setCategory] = useState("Tout");
 
-  const deliveryLabel = useMemo(() => {
-    if (!selectedProduct) return "";
-    return selectedProduct.category === "Trompe-l'oeil"
-      ? "Delai de livraison : J+1"
-      : "Delai de livraison : Jour meme";
-  }, [selectedProduct]);
+  const visibleProducts =
+    category === "Tout"
+      ? catalog
+      : catalog.filter((item) => item.category === category);
 
   useEffect(() => {
-    const layerItems = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-parallax-layer]")
-    );
-    const revealItems = Array.from(
-      document.querySelectorAll<HTMLElement>(".animate-reveal")
-    );
-    const hero = document.querySelector<HTMLElement>("[data-hero]");
-    const scrollItems = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-scroll-speed]")
-    );
-
-    const moveLayers = (clientX: number, clientY: number) => {
-      if (!hero) return;
-      const rect = hero.getBoundingClientRect();
-      const x = ((clientX - rect.left) / rect.width - 0.5) * 2;
-      const y = ((clientY - rect.top) / rect.height - 0.5) * 2;
-
-      layerItems.forEach((item) => {
-        const depth = Number(item.dataset.depth ?? "0.1");
-        const moveX = x * depth * 42;
-        const moveY = y * depth * 42;
-        item.style.transform = `translate3d(${moveX}px, ${moveY}px, 0)`;
-      });
-    };
-
-    let scrollRaf = 0;
-    const onPointerMove = (event: PointerEvent) => {
-      moveLayers(event.clientX, event.clientY);
-    };
-
-    const onPointerLeave = () => {
-      layerItems.forEach((item) => {
-        item.style.transform = "translate3d(0, 0, 0)";
-      });
-    };
-
-    const onScroll = () => {
-      if (scrollRaf) return;
-      scrollRaf = window.requestAnimationFrame(() => {
-        const scrollY = window.scrollY;
-        const canUseScrollParallax = window.innerWidth >= 1024;
-        scrollItems.forEach((item) => {
-          if (!canUseScrollParallax) {
-            item.style.transform = "translate3d(0, 0, 0)";
-            return;
-          }
-          const speed = Number(item.dataset.scrollSpeed ?? "0.08");
-          item.style.transform = `translate3d(0, ${scrollY * speed}px, 0)`;
-        });
-        scrollRaf = 0;
-      });
-    };
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.18 }
-    );
-
-    revealItems.forEach((item) => observer.observe(item));
-    hero?.addEventListener("pointermove", onPointerMove);
-    hero?.addEventListener("pointerleave", onPointerLeave);
-    window.addEventListener("scroll", onScroll, { passive: true });
-
-    return () => {
-      observer.disconnect();
-      hero?.removeEventListener("pointermove", onPointerMove);
-      hero?.removeEventListener("pointerleave", onPointerLeave);
-      window.removeEventListener("scroll", onScroll);
-      if (scrollRaf) {
-        window.cancelAnimationFrame(scrollRaf);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isProductModalOpen) return;
-    const onEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsProductModalOpen(false);
-      }
+    if (!selectedProduct) return;
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedProduct(null);
     };
     window.addEventListener("keydown", onEscape);
     return () => window.removeEventListener("keydown", onEscape);
-  }, [isProductModalOpen]);
-
-  const openProductModal = (product: Product) => {
-    setSelectedProduct(product);
-    setIsProductModalOpen(true);
-  };
-
-  const onCardKeyDown = (
-    event: KeyboardEvent<HTMLElement>,
-    product: Product
-  ) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      openProductModal(product);
-    }
-  };
+  }, [selectedProduct]);
 
   return (
-    <div className="relative min-h-screen overflow-x-clip pb-10">
-      <div className="sugar-grain" />
-      <div className="pointer-events-none fixed -top-40 -left-24 -z-10 h-96 w-96 rounded-full bg-[#ff8ccd]/30 blur-[85px]" />
-      <div className="pointer-events-none fixed -right-20 bottom-0 -z-10 h-96 w-96 rounded-full bg-[#8decc3]/30 blur-[95px]" />
-
+    <div className="relative min-h-screen overflow-x-clip">
       <SiteHeader currentPage="home" />
 
-      <main className="mx-auto w-[min(1200px,94%)] sm:w-[min(1200px,92%)]">
-        <section
-          data-hero
-          className="grid min-h-[74vh] items-center gap-6 py-8 sm:gap-10 sm:py-14 lg:min-h-[88vh] lg:grid-cols-[1fr_1.05fr]"
-        >
-          <div className="animate-reveal">
-            <p className="mb-3 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
-              Boutique de patisserie en ligne
-            </p>
-            <h1 className="text-4xl leading-[0.96] font-black tracking-tight text-[#4f3340] sm:text-6xl lg:text-7xl">
-              Ultra
-              <span className="bg-gradient-to-r from-[#ff72b6] to-[#ff9d74] bg-clip-text text-transparent">
-                {" "}
-                Gourmand
+      <main>
+        {/* Hero */}
+        <section className="mx-auto grid w-[min(1200px,92%)] items-center gap-12 pt-12 pb-20 sm:pt-16 lg:grid-cols-[1.05fr_1fr] lg:gap-8 lg:pt-20 lg:pb-28">
+          <div className="hero-in">
+            <p className="note">
+              <span className="note-dot" aria-hidden="true">
+                ✦
               </span>
-              <br />
-              et visuellement
-              <br />
-              irresistible.
+              Pâtisserie maison à Houilles (78)
+            </p>
+            <h1 className="display-xl mt-6">
+              Gourmand jusqu&apos;à la dernière miette.
             </h1>
-            <p className="mt-4 max-w-xl text-base text-[#775766] sm:text-lg">
-              Cookies, trompe-l&apos;oeil et creations premium avec une
-              experience tres visuelle, animee et memorable.
+            <p className="lede mt-6">
+              Cookies XXL, trompe-l&apos;œil bluffants et layer cakes à étages,
+              préparés à l&apos;atelier et livrés chez vous le jour même.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3 text-sm font-semibold text-[#6f4f5e]">
-              <span className="glass rounded-full px-3 py-1.5">
-                Livraison rapide
-              </span>
-              <span className="glass rounded-full px-3 py-1.5">
-                Houilles (78) et alentours
-              </span>
-              <span className="glass rounded-full px-3 py-1.5">Fait maison</span>
-              <span className="glass rounded-full px-3 py-1.5">
-                Personnalisation complete
-              </span>
-            </div>
-            <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
-              <Link
-                href="/commander"
-                className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 text-center font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] transition hover:-translate-y-0.5"
-              >
-                Commander maintenant
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/commander" className="btn btn-primary">
+                Commander
               </Link>
-              <a
-                href="#best"
-                className="glass rounded-full px-6 py-3 text-center font-bold text-[#6d4d5a]"
-              >
-                Top ventes
+              <a href="#vitrine" className="btn btn-outline">
+                Voir la vitrine
               </a>
             </div>
           </div>
 
-          <div className="hero-card glass relative min-h-[22rem] overflow-hidden rounded-[1.5rem] sm:min-h-[30rem] sm:rounded-[2rem] lg:min-h-[34rem]">
-            <Image
-              src={catalog[6]?.image ?? catalog[0].image}
-              alt="Layer cake signature"
-              fill
-              priority
-              className="object-cover object-center"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#2f1f2a]/45 via-transparent to-transparent" />
-            <span
-              data-parallax-layer
-              data-depth="0.2"
-              className="absolute top-6 left-6 rounded-full bg-white px-3 py-1 text-xs font-extrabold text-[#ff5cab]"
-            >
-              NOUVEAUTE
-            </span>
-            <span
-              data-parallax-layer
-              data-depth="0.12"
-              className="absolute top-1/2 right-6 rounded-full bg-white/80 px-3 py-1 text-xs font-bold text-[#664650]"
-            >
-              100% artisanal premium
-            </span>
-            <div
-              data-parallax-layer
-              data-depth="0.1"
-              className="glass absolute right-6 bottom-6 flex w-36 items-center gap-2 rounded-2xl p-2"
-            >
-              <div className="relative h-14 w-14 overflow-hidden rounded-xl">
+          <div className="relative mx-auto w-full max-w-[34rem]">
+            <div className="hero-photo-in scallop-frame relative aspect-square bg-framboise-soft">
+              <Image
+                src={heroProduct.image}
+                alt={`${heroProduct.name}, gâteau à étages garni de fruits rouges`}
+                fill
+                priority
+                sizes="(min-width: 1024px) 34rem, 92vw"
+                className="object-cover"
+              />
+            </div>
+
+            <div className="hero-photo-in scallop-frame absolute -bottom-6 -left-4 aspect-square w-[34%] bg-pistache p-[7%] sm:-left-10">
+              <div className="scallop-frame relative h-full w-full">
                 <Image
-                  src={catalog[1]?.image ?? catalog[0].image}
-                  alt="Trompe-l'oeil artisanal"
+                  src={heroSideProduct.image}
+                  alt={heroSideProduct.name}
                   fill
+                  sizes="12rem"
                   className="object-cover"
                 />
               </div>
-              <div>
-                <p className="text-[10px] font-bold text-[#7f5e6d] uppercase">
-                  Cookie
-                </p>
-                <p className="text-sm font-black text-[#4f3340]">5,90 EUR</p>
-              </div>
+            </div>
+
+            <p className="sticker sticker-in absolute -top-2 right-0 h-28 w-28 rotate-[10deg] p-3 text-[0.95rem] sm:right-2 sm:h-32 sm:w-32 sm:text-base">
+              Livré le jour même
+            </p>
+
+            <div className="absolute right-[6%] bottom-[12%] rotate-[-4deg]">
+              <p className="price-tag">
+                <span className="font-semibold">{heroProduct.name}</span>
+                <span className="text-framboise">
+                  {formatPrice(heroProduct.price)}
+                </span>
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Bande infos */}
+        <section
+          className="band band-scallop-top band-scallop-bottom text-white"
+          style={bandStyle("var(--framboise)")}
+          aria-label="Infos livraison"
+        >
+          <ul className="mx-auto grid w-[min(1200px,92%)] gap-4 py-7 text-center sm:grid-cols-3 sm:gap-6">
+            <li>
+              <p className="font-display text-2xl">Livraison offerte</p>
+              <p className="text-[0.95rem] text-white/85">
+                dès 15 € à moins de 15 km
+              </p>
+            </li>
+            <li>
+              <p className="font-display text-2xl">Trompe-l&apos;œil à J+1</p>
+              <p className="text-[0.95rem] text-white/85">
+                le temps de les sculpter
+              </p>
+            </li>
+            <li>
+              <p className="font-display text-2xl">Retrait à l&apos;atelier</p>
+              <p className="text-[0.95rem] text-white/85">
+                sur réservation, à Houilles
+              </p>
+            </li>
+          </ul>
+        </section>
+
+        {/* Vitrine */}
+        <section
+          id="vitrine"
+          className="mx-auto w-[min(1200px,92%)] pt-24 pb-16"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <h2 className="display-lg">La vitrine</h2>
+              <p className="lede mt-3">
+                Tout est préparé à la commande. Choisissez le parfum au moment
+                d&apos;ajouter au panier.
+              </p>
             </div>
             <div
-              data-parallax-layer
-              data-depth="0.18"
-              className="absolute top-[14%] right-[10%] h-24 w-24 rounded-full border border-white/70 bg-[#ff82c3]/30 blur-[2px]"
-            />
-            <div
-              data-parallax-layer
-              data-depth="0.25"
-              className="absolute top-[24%] left-[6%] h-12 w-12 rounded-full bg-[#ffe291]/70"
-            />
-          </div>
-        </section>
-
-        <section className="animate-reveal py-2">
-          <div className="home-location-banner">
-            <p>
-              Zone de livraison : <strong>Houilles (78)</strong> et ses alentours.
-            </p>
-            <p>Retrait et livraison rapide sur reservation.</p>
-          </div>
-        </section>
-
-        <section id="collections" className="py-8 sm:py-10">
-          <div className="animate-reveal mb-7">
-            <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
-              Collections
-            </p>
-            <h2 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
-              Gateaux et cookies en vitrine
-            </h2>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {catalog.map((item) => (
-              <article
-                key={item.name}
-                role="button"
-                tabIndex={0}
-                onClick={() => openProductModal(item)}
-                onKeyDown={(event) => onCardKeyDown(event, item)}
-                className={`animate-reveal glass group rounded-3xl p-4 shadow-[0_18px_45px_rgba(248,154,194,.14)] transition hover:-translate-y-1 ${
-                  item.category === "Box"
-                    ? "ring-1 ring-[#ff8fc9]/55 shadow-[0_20px_50px_rgba(255,114,182,.26)]"
-                    : ""
-                } cursor-pointer focus-visible:ring-2 focus-visible:ring-[#ff8fc9] focus-visible:outline-none`}
-              >
-                <div className="relative mb-4 h-52 overflow-hidden rounded-2xl sm:h-56">
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    fill
-                    className="object-cover transition duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
-                  <span className="glass absolute top-3 left-3 rounded-full px-3 py-1 text-xs font-bold text-[#6d4d5a]">
-                    {item.tag}
-                  </span>
-                  <p className="absolute right-3 bottom-3 rounded-full bg-white px-3 py-1 text-sm font-black text-[#4f3340]">
-                    {formatPrice(item.price)}
-                  </p>
-                </div>
-                <h3 className="text-xl font-extrabold text-[#553a46]">
-                  {item.name}
-                </h3>
-                <p className="mt-2 text-[#765968]">{item.description}</p>
-                <Link
-                  href={`/commander?product=${encodeURIComponent(item.id)}`}
-                  onClick={(event) => event.stopPropagation()}
-                  className="mt-4 inline-flex rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-4 py-2 text-sm font-bold text-white shadow-[0_10px_25px_rgba(255,114,182,.35)]"
+              className="tabs"
+              role="group"
+              aria-label="Filtrer par catégorie"
+            >
+              {categories.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className="tab"
+                  aria-pressed={category === item}
+                  onClick={() => setCategory(item)}
                 >
-                  Commander
-                </Link>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section id="best" className="grid items-stretch gap-5 py-8 sm:py-10 lg:grid-cols-[1.08fr_.92fr]">
-          <div className="animate-reveal relative min-h-[20rem] overflow-hidden rounded-[1.4rem] sm:min-h-[26rem] sm:rounded-[1.8rem]">
-            <Image
-              src={catalog[6]?.image ?? catalog[0].image}
-              alt="Selection premium Patsam Gourmandise"
-              fill
-              className="object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#2a1621]/55 via-transparent to-transparent" />
-            <p className="absolute left-4 bottom-16 text-2xl leading-none font-black text-white sm:left-6 sm:bottom-20 sm:text-4xl">
-              Saveurs intenses
-              <br />
-              textures parfaites
-            </p>
-            <div className="absolute right-4 bottom-4 flex flex-wrap justify-end gap-2 sm:right-6">
-              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-extrabold text-[#5d3f4d]">
-                Frais du jour
-              </span>
-              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-extrabold text-[#5d3f4d]">
-                Livraison rapide
-              </span>
+                  {item}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="animate-reveal glass rounded-[1.4rem] p-4 sm:rounded-[1.8rem] sm:p-6">
-            <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
-              Best-sellers
-            </p>
-            <h2 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-4xl">
-              Les favoris qui partent en premier
-            </h2>
-            <p className="mt-2 text-[#735665]">
-              Une selection ultra demandee cette semaine, prete a etre personnalisee.
-            </p>
-            <div className="mt-5 space-y-3">
-              {bestSellerProducts.map((item) => (
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {visibleProducts.map((item) => {
+              const featured =
+                category === "Tout" && featuredIds.includes(item.id);
+              return (
                 <article
                   key={item.id}
-                  className="rounded-2xl border border-white/70 bg-white/60 p-3 shadow-[0_10px_24px_rgba(245,141,189,.12)]"
+                  className={`vitrine-card ${featured ? "lg:col-span-2" : ""}`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-base font-extrabold text-[#563845]">{item.name}</p>
-                      <p className="mt-1 text-sm text-[#735665]">{item.description}</p>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProduct(item)}
+                    className="text-left"
+                    aria-label={`Voir le détail : ${item.name}`}
+                  >
+                    <div
+                      className={`vitrine-photo ${featured ? "lg:aspect-[2.43/1]" : ""}`}
+                    >
+                      <Image
+                        src={item.image}
+                        alt=""
+                        fill
+                        sizes={
+                          featured
+                            ? "(min-width: 1024px) 790px, (min-width: 640px) 46vw, 92vw"
+                            : "(min-width: 1024px) 380px, (min-width: 640px) 46vw, 92vw"
+                        }
+                        className="object-cover"
+                      />
+                      <span
+                        className={`chip absolute top-3 right-3 ${
+                          item.category === "Trompe-l'œil" ||
+                          item.category === "Box"
+                            ? ""
+                            : "chip-framboise"
+                        }`}
+                      >
+                        {item.tag}
+                      </span>
+                      <span className="price-tag absolute bottom-4 left-0">
+                        {formatPrice(item.price)}
+                      </span>
                     </div>
-                    <p className="shrink-0 rounded-full bg-white px-3 py-1 text-sm font-black text-[#4f3340]">
-                      {formatPrice(item.price)}
+                    <div className="px-3 pt-5">
+                      <h3 className="text-xl leading-tight font-extrabold text-ganache">
+                        {item.name}
+                      </h3>
+                      <p className="mt-1.5 text-[0.98rem] text-cacao">
+                        {item.description}
+                      </p>
+                    </div>
+                  </button>
+                  <div className="mt-auto flex items-center justify-between gap-3 px-3 pt-5">
+                    <p className="text-sm font-semibold text-cacao">
+                      {getDeliveryDelay(item)}
                     </p>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between gap-3">
-                    <span className="rounded-full bg-[#ffe4f1] px-3 py-1 text-xs font-extrabold text-[#9b4f79]">
-                      {item.tag}
-                    </span>
-                    <span className="text-xs font-semibold text-[#7d5d6d]">{item.category}</span>
+                    <Link
+                      href={`/commander?product=${encodeURIComponent(item.id)}`}
+                      className="btn btn-primary btn-sm"
+                    >
+                      Commander
+                    </Link>
                   </div>
                 </article>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Les plus commandés */}
+        <section
+          id="best"
+          className="mx-auto grid w-[min(1200px,92%)] items-center gap-12 py-16 lg:grid-cols-[.9fr_1.1fr]"
+        >
+          <div className="relative aspect-[4/5] overflow-hidden rounded-[2.5rem] rounded-tl-[9rem] bg-framboise-soft">
+            <Image
+              src={heroSideProduct.image}
+              alt="Cookies Triple Choco tout juste sortis du four"
+              fill
+              sizes="(min-width: 1024px) 480px, 92vw"
+              className="object-cover"
+            />
+          </div>
+
+          <div>
+            <h2 className="display-lg">Les plus commandés</h2>
+            <p className="lede mt-3">
+              Ce qui part en premier, semaine après semaine.
+            </p>
+            <ol className="mt-8 grid gap-1">
+              {bestSellerProducts.map((item, index) => (
+                <li key={item.id}>
+                  <Link
+                    href={`/commander?product=${encodeURIComponent(item.id)}`}
+                    className="group grid grid-cols-[3rem_4.5rem_1fr_auto] items-center gap-4 border-b border-line py-4 sm:grid-cols-[4rem_5rem_1fr_auto]"
+                  >
+                    <span className="font-display text-5xl leading-none text-framboise sm:text-6xl">
+                      {index + 1}
+                    </span>
+                    <span className="relative aspect-square overflow-hidden rounded-2xl">
+                      <Image
+                        src={item.image}
+                        alt=""
+                        fill
+                        sizes="5rem"
+                        className="object-cover"
+                      />
+                    </span>
+                    <span>
+                      <span className="block text-lg leading-tight font-extrabold text-ganache group-hover:text-framboise">
+                        {item.name}
+                      </span>
+                      <span className="mt-0.5 block text-sm text-cacao">
+                        {item.description}
+                      </span>
+                    </span>
+                    <span className="text-lg font-extrabold tabular-nums text-ganache">
+                      {formatPrice(item.price)}
+                    </span>
+                  </Link>
+                </li>
               ))}
-            </div>
-            <div className="mt-6 grid gap-2 sm:flex sm:flex-wrap">
-              <Link
-                href="/commander"
-                className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 text-center font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] transition hover:-translate-y-0.5"
-              >
-                Commander ces best-sellers
-              </Link>
-              <a
-                href="#collections"
-                className="glass rounded-full px-5 py-3 text-center text-sm font-bold text-[#6d4d5a]"
-              >
-                Voir tout le catalogue
-              </a>
-            </div>
-          </div>
-        </section>
-
-        <section className="animate-reveal py-8 sm:py-10">
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
-                Feed gourmand
-              </p>
-              <h2 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-4xl">
-                Nos creations gourmandes
-              </h2>
-            </div>
-            <a href="#collections" className="text-sm font-bold text-[#f24ea5]">
-              Voir tout
-            </a>
-          </div>
-
-          <div className="marquee-wrap">
-            <div className="marquee-track">
-              {carouselProducts.map((item, index) => (
-                <div
-                  key={`${item.id}-${index}`}
-                  className="relative h-44 w-64 shrink-0 overflow-hidden rounded-2xl md:h-52 md:w-80"
-                >
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="marquee-item-label">{item.name}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="avis" className="py-8 sm:py-10">
-          <div className="animate-reveal mb-7 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
-                Avis clients
-              </p>
-              <h2 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
-                Ils ont deja commande
-              </h2>
-            </div>
-            <div className="rounded-2xl bg-white/75 px-4 py-3 text-sm text-[#6c4b59] shadow-[0_10px_24px_rgba(245,141,189,.12)]">
-              <p className="font-black text-[#4f3340]">4.9 / 5</p>
-              <p className="font-semibold">Base sur les retours clients</p>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {reviews.map((review) => (
-              <article
-                key={review.id}
-                className="animate-reveal glass rounded-3xl p-5 shadow-[0_18px_45px_rgba(248,154,194,.14)]"
-              >
-                <p className="text-base leading-relaxed text-[#5e434f]">
-                  &ldquo;{review.text}&rdquo;
-                </p>
-                <div className="mt-4 flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-extrabold text-[#553a46]">{review.name}</p>
-                    <p className="text-xs font-semibold text-[#7b5d6c]">{review.city}</p>
-                  </div>
-                  <p className="rounded-full bg-[#fff0f7] px-3 py-1 text-xs font-black text-[#a34d74]">
-                    {"★".repeat(review.rating)}
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section id="histoire" className="animate-reveal py-12 text-center sm:py-16">
-          <p className="mb-3 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
-            Notre histoire
-          </p>
-          <h2 className="mx-auto max-w-4xl text-3xl leading-tight font-black tracking-tight text-[#4f3340] sm:text-5xl">
-            Patsam Gourmandise transforme chaque commande en experience waouh.
-          </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-base text-[#785a68] sm:text-lg">
-            Atelier artisanal, direction artistique forte et exigence premium.
-            Un univers de marque fort, bien au-dela d&apos;une simple page catalogue.
-          </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/livraison"
-              className="glass rounded-full px-5 py-2.5 text-sm font-bold text-[#6d4d5a]"
-            >
-              Infos livraison
+            </ol>
+            <Link href="/commander" className="btn btn-primary mt-8">
+              Composer ma commande
             </Link>
-            <Link
-              href="/contact"
-              className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-5 py-2.5 text-sm font-bold text-white shadow-[0_10px_25px_rgba(255,114,182,.35)]"
-            >
-              Nous contacter
+          </div>
+        </section>
+
+        {/* Comment ça marche */}
+        <section className="mx-auto w-[min(1200px,92%)] py-20">
+          <h2 className="display-lg max-w-xl">
+            Commander, c&apos;est trois étapes.
+          </h2>
+          <ol className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">
+            {steps.map((step, index) => (
+              <li key={step.title}>
+                <span
+                  className={`scallop-frame font-display grid h-20 w-20 place-items-center text-4xl ${
+                    [
+                      "bg-mangue text-ganache",
+                      "bg-pistache text-pistache-deep",
+                      "bg-framboise text-white",
+                    ][index]
+                  }`}
+                  aria-hidden="true"
+                >
+                  {index + 1}
+                </span>
+                <h3 className="mt-5 text-2xl font-extrabold text-ganache">
+                  {step.title}
+                </h3>
+                <p className="mt-2 max-w-sm text-cacao">{step.text}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {/* Avis */}
+        <section
+          id="avis"
+          className="band band-scallop-top band-scallop-bottom mt-10 text-ganache"
+          style={bandStyle("var(--chantilly)")}
+        >
+          <div className="mx-auto w-[min(1200px,92%)] py-20">
+            <div className="flex flex-wrap items-end justify-between gap-6">
+              <h2 className="display-lg">Ils en redemandent</h2>
+              <p className="text-lg text-cacao">
+                <span className="font-display text-4xl text-framboise">
+                  4,9
+                </span>{" "}
+                / 5 sur les retours clients
+              </p>
+            </div>
+            <div className="mt-12 grid gap-10 md:grid-cols-3">
+              {reviews.map((review) => (
+                <figure
+                  key={review.id}
+                  className="border-t-2 border-ganache pt-6"
+                >
+                  <p className="text-mangue" aria-label="5 étoiles sur 5">
+                    ★★★★★
+                  </p>
+                  <blockquote className="mt-3 text-xl leading-snug font-medium">
+                    « {review.text} »
+                  </blockquote>
+                  <figcaption className="mt-5 text-[0.95rem] text-cacao">
+                    <span className="font-bold text-ganache">
+                      {review.name}
+                    </span>
+                    , {review.city}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Sur mesure */}
+        <section
+          id="histoire"
+          className="mx-auto w-[min(1200px,92%)] pt-28 pb-8 text-center"
+        >
+          <h2 className="display-lg mx-auto max-w-3xl">
+            Un anniversaire, un baptême, un mariage ?
+          </h2>
+          <p className="lede mx-auto mt-5">
+            On crée le gâteau sur mesure : thème, couleurs, parfums et nombre de
+            parts. Dites-nous la date, on s&apos;occupe du reste.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link href="/contact" className="btn btn-primary">
+              Demander un devis
+            </Link>
+            <Link href="/livraison" className="btn btn-outline">
+              Zones de livraison
             </Link>
           </div>
         </section>
       </main>
 
-      {isProductModalOpen && selectedProduct && (
+      {selectedProduct && (
         <div
-          className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/45 p-2 sm:p-4"
-          onClick={() => setIsProductModalOpen(false)}
+          className="dialog-backdrop fixed inset-0 z-[80] flex items-end justify-center overflow-y-auto p-3 sm:items-center sm:p-6"
+          onClick={() => setSelectedProduct(null)}
         >
           <div
-            className="glass w-full max-w-2xl rounded-[1.4rem] bg-white/88 p-5 sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="product-dialog-title"
+            className="dialog-panel grid w-full max-w-3xl overflow-hidden rounded-[2rem] bg-chantilly sm:grid-cols-[.9fr_1.1fr]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="mb-4 flex items-start justify-between gap-2">
-              <div>
-                <p className="text-xs font-extrabold tracking-[0.16em] text-[#966a7d] uppercase">
-                  Details produit
-                </p>
-                <h2 className="text-3xl font-black text-[#4f3340]">
-                  {selectedProduct.name}
-                </h2>
+            <div className="relative aspect-[4/3] sm:aspect-auto">
+              <Image
+                src={selectedProduct.image}
+                alt={selectedProduct.name}
+                fill
+                sizes="(min-width: 640px) 340px, 100vw"
+                className="object-cover"
+              />
+            </div>
+            <div className="p-6 sm:p-8">
+              <div className="flex items-start justify-between gap-3">
+                <span className="chip chip-framboise">
+                  {selectedProduct.category}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedProduct(null)}
+                  className="btn btn-soft btn-round"
+                  aria-label="Fermer"
+                >
+                  ×
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsProductModalOpen(false)}
-                className="rounded-full bg-white px-3 py-1 text-sm font-bold text-[#734d5f]"
-              >
-                Fermer
-              </button>
-            </div>
+              <h2 id="product-dialog-title" className="display-md mt-3">
+                {selectedProduct.name}
+              </h2>
+              <p className="mt-2 text-cacao">{selectedProduct.description}</p>
+              <p className="mt-4 text-2xl font-extrabold tabular-nums">
+                {formatPrice(selectedProduct.price)}
+              </p>
 
-            <p className="text-sm text-[#6f515f]">{selectedProduct.description}</p>
+              <dl className="mt-5 grid gap-4 border-t border-line pt-5 text-[0.95rem]">
+                <div>
+                  <dt className="font-bold">Parfums</dt>
+                  <dd className="mt-2 flex flex-wrap gap-1.5">
+                    {selectedProduct.flavors.map((flavor) => (
+                      <span
+                        key={flavor}
+                        className="rounded-full bg-lait-fraise px-3 py-1 text-sm"
+                      >
+                        {flavor}
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-bold">Allergènes</dt>
+                  <dd className="text-cacao">
+                    {selectedProduct.allergens.join(", ")}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-bold">Délai</dt>
+                  <dd className="text-cacao">
+                    {getDeliveryDelay(selectedProduct)}
+                  </dd>
+                </div>
+              </dl>
 
-            <div className="mt-4 rounded-2xl bg-white/70 p-4 text-sm text-[#654755]">
-              <p className="font-semibold">{deliveryLabel}</p>
-              <p className="mt-2 font-bold text-[#725161]">Allergenes</p>
-              <p>{selectedProduct.allergens.join(", ")}</p>
-              <p className="mt-2 font-bold text-[#725161]">Gouts disponibles</p>
-              <p>{selectedProduct.flavors.join(", ")}</p>
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-2">
               <Link
                 href={`/commander?product=${encodeURIComponent(selectedProduct.id)}`}
-                className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-5 py-2.5 text-sm font-bold text-white shadow-[0_10px_25px_rgba(255,114,182,.35)]"
+                className="btn btn-primary mt-6 w-full"
               >
-                Commander
+                Choisir le parfum et commander
               </Link>
-              <button
-                type="button"
-                onClick={() => setIsProductModalOpen(false)}
-                className="glass rounded-full px-5 py-2.5 text-sm font-bold text-[#6d4d5a]"
-              >
-                Retour
-              </button>
             </div>
           </div>
         </div>

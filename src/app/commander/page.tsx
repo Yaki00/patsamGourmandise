@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { CSSProperties, FormEvent, Suspense, useEffect, useMemo, useState } from "react";
+import { CSSProperties, Suspense, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Product, formatPrice, productCatalog } from "@/data/products";
 import { useCart } from "@/context/cart-context";
@@ -10,7 +11,7 @@ import { SiteHeader } from "@/components/site-header";
 type FormulaRow = { productId: string; flavor: string; qty: number };
 
 const categories = [
-  "Toutes",
+  "Tout",
   ...Array.from(new Set(productCatalog.map((item) => item.category))),
 ];
 
@@ -100,10 +101,10 @@ const getCookieFlavorDesign = (flavor: string) => {
 };
 
 const getCategoryPalette = (category: Product["category"]) => {
-  if (category === "Trompe-l'oeil") {
+  if (category === "Trompe-l'œil") {
     return { main: "#f7b6cf", dark: "#b8678f", light: "#ffe3f1" };
   }
-  if (category === "Gateaux") {
+  if (category === "Gâteaux") {
     return { main: "#cba47a", dark: "#8a5b3b", light: "#f6e2c7" };
   }
   if (category === "Box") {
@@ -123,7 +124,11 @@ const getGateauFlavorPalette = (flavor: string) => {
       topping: "#6f402d",
     };
   }
-  if (value.includes("mango") || value.includes("mangue") || value.includes("passion")) {
+  if (
+    value.includes("mango") ||
+    value.includes("mangue") ||
+    value.includes("passion")
+  ) {
     return {
       sponge: "#efb15d",
       spongeDark: "#b5752c",
@@ -132,7 +137,11 @@ const getGateauFlavorPalette = (flavor: string) => {
       topping: "#ff8c34",
     };
   }
-  if (value.includes("fraise") || value.includes("fruits rouges") || value.includes("framboise")) {
+  if (
+    value.includes("fraise") ||
+    value.includes("fruits rouges") ||
+    value.includes("framboise")
+  ) {
     return {
       sponge: "#dc8ba7",
       spongeDark: "#a85d7a",
@@ -170,11 +179,25 @@ function LayerCakeVisual({ flavor }: { flavor: string }) {
 
       <ellipse cx="110" cy="72" rx="66" ry="20" fill={p.cream} />
       <rect x="44" y="72" width="132" height="34" fill="url(#cakeSponge)" />
-      <ellipse cx="110" cy="106" rx="66" ry="20" fill={p.spongeDark} opacity="0.95" />
+      <ellipse
+        cx="110"
+        cy="106"
+        rx="66"
+        ry="20"
+        fill={p.spongeDark}
+        opacity="0.95"
+      />
 
       <ellipse cx="110" cy="106" rx="66" ry="18" fill={p.cream} />
       <rect x="44" y="106" width="132" height="32" fill="url(#cakeSponge)" />
-      <ellipse cx="110" cy="138" rx="66" ry="18" fill={p.spongeDark} opacity="0.95" />
+      <ellipse
+        cx="110"
+        cy="138"
+        rx="66"
+        ry="18"
+        fill={p.spongeDark}
+        opacity="0.95"
+      />
 
       <ellipse cx="110" cy="138" rx="66" ry="18" fill={p.cream} />
       <rect x="44" y="138" width="132" height="34" fill="url(#cakeSponge)" />
@@ -193,7 +216,13 @@ function LayerCakeVisual({ flavor }: { flavor: string }) {
       <circle cx="136" cy="58" r="7" fill={p.topping} />
       <ellipse cx="84" cy="56" rx="2.7" ry="1.5" fill="rgba(255,255,255,.45)" />
       <ellipse cx="110" cy="51" rx="3" ry="1.6" fill="rgba(255,255,255,.45)" />
-      <ellipse cx="136" cy="56" rx="2.7" ry="1.5" fill="rgba(255,255,255,.45)" />
+      <ellipse
+        cx="136"
+        cy="56"
+        rx="2.7"
+        ry="1.5"
+        fill="rgba(255,255,255,.45)"
+      />
     </svg>
   );
 }
@@ -203,7 +232,11 @@ const getTrompeFlavorKind = (flavor: string) => {
   if (value.includes("framboise") || value.includes("fraise")) {
     return "raspberry";
   }
-  if (value.includes("mango") || value.includes("mangue") || value.includes("passion")) {
+  if (
+    value.includes("mango") ||
+    value.includes("mangue") ||
+    value.includes("passion")
+  ) {
     return "mango";
   }
   if (value.includes("pistache")) {
@@ -262,7 +295,13 @@ function TrompeFruitVisual({ flavor }: { flavor: string }) {
     return (
       <svg viewBox="0 0 200 200" className="trompe-svg" aria-hidden="true">
         <defs>
-          <linearGradient id="pistachioShell" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient
+            id="pistachioShell"
+            x1="0%"
+            y1="0%"
+            x2="100%"
+            y2="100%"
+          >
             <stop offset="0%" stopColor="#ecf6d0" />
             <stop offset="58%" stopColor="#9bc97d" />
             <stop offset="100%" stopColor="#6f9158" />
@@ -343,16 +382,16 @@ function TrompeFruitVisual({ flavor }: { flavor: string }) {
 }
 
 const getPreviewOverlay = (category: Product["category"]) => {
-  if (category === "Trompe-l'oeil") {
-    return "from-[#ffddec]/55 to-[#e9fffb]/25";
+  if (category === "Trompe-l'œil") {
+    return "from-[#fde3ea] to-[#e4f1dc]";
   }
-  if (category === "Gateaux") {
-    return "from-[#ffe8c8]/55 to-[#fff7dd]/25";
+  if (category === "Gâteaux") {
+    return "from-[#fbe7e4] to-[#fdf0d8]";
   }
   if (category === "Box") {
-    return "from-[#e5e4ff]/55 to-[#f7ebff]/25";
+    return "from-[#efe9f8] to-[#fbe7e4]";
   }
-  return "from-[#ffe7d0]/55 to-[#fff2d9]/25";
+  return "from-[#fdeedd] to-[#fbe7e4]";
 };
 
 function ThreeDItem({
@@ -364,7 +403,7 @@ function ThreeDItem({
   flavor: string;
   index: number;
 }) {
-  if (category === "Trompe-l'oeil") {
+  if (category === "Trompe-l'œil") {
     return (
       <div className="trompe-realistic float-pop">
         <TrompeFruitVisual flavor={flavor} />
@@ -372,7 +411,7 @@ function ThreeDItem({
     );
   }
 
-  if (category === "Gateaux") {
+  if (category === "Gâteaux") {
     return (
       <div className="layer-cake-realistic float-pop">
         <LayerCakeVisual flavor={flavor} />
@@ -381,7 +420,9 @@ function ThreeDItem({
   }
 
   const palette =
-    category === "Cookies" ? getFlavorPalette(flavor) : getCategoryPalette(category);
+    category === "Cookies"
+      ? getFlavorPalette(flavor)
+      : getCategoryPalette(category);
   const style = {
     "--tone-main": palette.main,
     "--tone-dark": palette.dark,
@@ -443,7 +484,7 @@ function ProductBox3D({
   const palette =
     category === "Cookies"
       ? getFlavorPalette(flavor)
-      : category === "Trompe-l'oeil"
+      : category === "Trompe-l'œil"
         ? getTrompePalette(flavor)
         : getCategoryPalette(category);
   const style = {
@@ -547,7 +588,7 @@ function Dynamic3DPreview({
             )}
           </div>
         </>
-      ) : product.category === "Trompe-l'oeil" ? (
+      ) : product.category === "Trompe-l'œil" ? (
         <>
           <div className="single-model-stage">
             <span className="qty-chip">x{safeQty}</span>
@@ -557,7 +598,7 @@ function Dynamic3DPreview({
                 {Array.from({ length: safeQty }).map((_, idx) => (
                   <ThreeDItem
                     key={`trompe-single-${idx}`}
-                    category="Trompe-l'oeil"
+                    category="Trompe-l'œil"
                     flavor={flavor}
                     index={idx}
                   />
@@ -570,7 +611,7 @@ function Dynamic3DPreview({
                 {Array.from({ length: 5 }).map((_, idx) => (
                   <ThreeDItem
                     key={`trompe-pile-${idx}`}
-                    category="Trompe-l'oeil"
+                    category="Trompe-l'œil"
                     flavor={flavor}
                     index={idx}
                   />
@@ -581,7 +622,7 @@ function Dynamic3DPreview({
             {safeQty >= 8 && safeQty <= 14 && (
               <div className="model-scale">
                 <ProductBox3D
-                  category="Trompe-l'oeil"
+                  category="Trompe-l'œil"
                   flavor={flavor}
                   label={flavor}
                 />
@@ -591,17 +632,17 @@ function Dynamic3DPreview({
             {safeQty >= 15 && (
               <div className="box-stack">
                 <ProductBox3D
-                  category="Trompe-l'oeil"
+                  category="Trompe-l'œil"
                   flavor={flavor}
                   label={flavor}
                 />
                 <ProductBox3D
-                  category="Trompe-l'oeil"
+                  category="Trompe-l'œil"
                   flavor={flavor}
                   label={flavor}
                 />
                 <ProductBox3D
-                  category="Trompe-l'oeil"
+                  category="Trompe-l'œil"
                   flavor={flavor}
                   label={flavor}
                 />
@@ -609,7 +650,7 @@ function Dynamic3DPreview({
             )}
           </div>
         </>
-      ) : product.category === "Gateaux" ? (
+      ) : product.category === "Gâteaux" ? (
         <>
           <div className="single-model-stage">
             <span className="qty-chip">x{safeQty}</span>
@@ -619,7 +660,7 @@ function Dynamic3DPreview({
                 {Array.from({ length: safeQty }).map((_, idx) => (
                   <ThreeDItem
                     key={`gateau-single-${idx}`}
-                    category="Gateaux"
+                    category="Gâteaux"
                     flavor={flavor}
                     index={idx}
                   />
@@ -632,7 +673,7 @@ function Dynamic3DPreview({
                 {Array.from({ length: 5 }).map((_, idx) => (
                   <ThreeDItem
                     key={`gateau-pile-${idx}`}
-                    category="Gateaux"
+                    category="Gâteaux"
                     flavor={flavor}
                     index={idx}
                   />
@@ -642,15 +683,31 @@ function Dynamic3DPreview({
 
             {safeQty >= 8 && safeQty <= 14 && (
               <div className="model-scale">
-                <ProductBox3D category="Gateaux" flavor={flavor} label={product.name} />
+                <ProductBox3D
+                  category="Gâteaux"
+                  flavor={flavor}
+                  label={product.name}
+                />
               </div>
             )}
 
             {safeQty >= 15 && (
               <div className="box-stack">
-                <ProductBox3D category="Gateaux" flavor={flavor} label={product.name} />
-                <ProductBox3D category="Gateaux" flavor={flavor} label={product.name} />
-                <ProductBox3D category="Gateaux" flavor={flavor} label={product.name} />
+                <ProductBox3D
+                  category="Gâteaux"
+                  flavor={flavor}
+                  label={product.name}
+                />
+                <ProductBox3D
+                  category="Gâteaux"
+                  flavor={flavor}
+                  label={product.name}
+                />
+                <ProductBox3D
+                  category="Gâteaux"
+                  flavor={flavor}
+                  label={product.name}
+                />
               </div>
             )}
           </div>
@@ -687,7 +744,7 @@ function FormulaBox3DPreview({ rows }: { rows: FormulaRow[] }) {
       key: `${row.product.id}-${row.flavor}-${idx}`,
       category: row.product.category,
       flavor: row.flavor,
-    }))
+    })),
   );
 
   return (
@@ -707,8 +764,8 @@ function FormulaBox3DPreview({ rows }: { rows: FormulaRow[] }) {
           ))}
         </div>
       </div>
-      <p className="mt-2 text-sm font-bold text-[#634754]">
-        {activeRows.reduce((sum, row) => sum + row.qty, 0)} piece(s) dans la box
+      <p className="mt-3 text-sm font-bold text-cacao">
+        {activeRows.reduce((sum, row) => sum + row.qty, 0)} pièce(s) dans la box
       </p>
     </div>
   );
@@ -718,40 +775,47 @@ function CommanderPageContent() {
   const searchParams = useSearchParams();
   const requestedProductId = searchParams.get("product");
   const requestedProductFromUrl = requestedProductId
-    ? productCatalog.find((item) => item.id === requestedProductId) ?? null
+    ? (productCatalog.find((item) => item.id === requestedProductId) ?? null)
     : null;
   const { entries, addItem, setItemQty, subtotal } = useCart();
   const [selectedCategory, setSelectedCategory] = useState<string>(
-    requestedProductFromUrl?.category ?? "Toutes"
+    requestedProductFromUrl?.category ?? "Tout",
   );
   const [modalOpen, setModalOpen] = useState(Boolean(requestedProductFromUrl));
   const [formulaModalOpen, setFormulaModalOpen] = useState(false);
   const [modalProductId, setModalProductId] = useState<string | null>(
-    requestedProductFromUrl?.id ?? null
+    requestedProductFromUrl?.id ?? null,
   );
   const [modalFlavor, setModalFlavor] = useState<string>(
-    requestedProductFromUrl?.flavors[0] ?? ""
+    requestedProductFromUrl?.flavors[0] ?? "",
   );
   const [modalQty, setModalQty] = useState<number>(1);
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [formulaRows, setFormulaRows] = useState<FormulaRow[]>([
     { productId: "cookie-triple-choco", flavor: "Fraise", qty: 2 },
-    { productId: "layer-cake-signature", flavor: "Vanille fruits rouges", qty: 1 },
-    { productId: "trompe-loeil-framboise", flavor: "Framboise vanille", qty: 1 },
+    {
+      productId: "layer-cake-signature",
+      flavor: "Vanille fruits rouges",
+      qty: 1,
+    },
+    {
+      productId: "trompe-loeil-framboise",
+      flavor: "Framboise vanille",
+      qty: 1,
+    },
   ]);
   const [formulaFeedback, setFormulaFeedback] = useState<string>("");
 
   const filteredProducts =
-    selectedCategory === "Toutes"
+    selectedCategory === "Tout"
       ? productCatalog
       : productCatalog.filter((item) => item.category === selectedCategory);
 
   const selectedProduct = useMemo(
     () =>
       modalProductId
-        ? productCatalog.find((item) => item.id === modalProductId) ?? null
+        ? (productCatalog.find((item) => item.id === modalProductId) ?? null)
         : null,
-    [modalProductId]
+    [modalProductId],
   );
 
   useEffect(() => {
@@ -791,9 +855,6 @@ function CommanderPageContent() {
       }));
   }, [entries]);
 
-  const delivery = subtotal > 0 && subtotal < 60 ? 6.9 : 0;
-  const grandTotal = subtotal + delivery;
-
   const formulaTotal = formulaRows.reduce((sum, row) => {
     const product = productCatalog.find((item) => item.id === row.productId);
     if (!product || row.qty <= 0) return sum;
@@ -810,22 +871,26 @@ function CommanderPageContent() {
               flavor: product?.flavors[0] ?? "Classique",
               qty: Math.max(1, row.qty),
             }
-          : row
-      )
+          : row,
+      ),
     );
   };
 
   const updateFormulaFlavor = (rowIndex: number, flavor: string) => {
     setFormulaRows((previous) =>
-      previous.map((row, index) => (index === rowIndex ? { ...row, flavor } : row))
+      previous.map((row, index) =>
+        index === rowIndex ? { ...row, flavor } : row,
+      ),
     );
   };
 
   const updateFormulaQty = (rowIndex: number, qty: number) => {
     setFormulaRows((previous) =>
       previous.map((row, index) =>
-        index === rowIndex ? { ...row, qty: Math.max(0, Math.min(30, qty)) } : row
-      )
+        index === rowIndex
+          ? { ...row, qty: Math.max(0, Math.min(30, qty)) }
+          : row,
+      ),
     );
   };
 
@@ -837,13 +902,17 @@ function CommanderPageContent() {
   };
 
   const removeFormulaRow = (rowIndex: number) => {
-    setFormulaRows((previous) => previous.filter((_, index) => index !== rowIndex));
+    setFormulaRows((previous) =>
+      previous.filter((_, index) => index !== rowIndex),
+    );
   };
 
   const addFormulaToCart = () => {
     const normalized = formulaRows
       .map((row) => {
-        const product = productCatalog.find((item) => item.id === row.productId);
+        const product = productCatalog.find(
+          (item) => item.id === row.productId,
+        );
         if (!product || row.qty <= 0) return null;
         const safeFlavor = product.flavors.includes(row.flavor)
           ? row.flavor
@@ -859,7 +928,7 @@ function CommanderPageContent() {
 
     normalized.forEach((line) => addItem(line));
 
-    setFormulaFeedback("Formule ajoutee au panier.");
+    setFormulaFeedback("Box ajoutée au panier.");
   };
 
   const openConfigModal = (product: Product) => {
@@ -892,170 +961,183 @@ function CommanderPageContent() {
     setItemQty(productId, flavor, line.qty + 1);
   };
 
-  const submitOrder = (event: FormEvent) => {
-    event.preventDefault();
-    if (cartItems.length === 0) return;
-    setIsSubmitted(true);
-  };
-
   return (
-    <div className="relative min-h-screen overflow-x-clip pb-14">
-      <div className="sugar-grain" />
-      <div className="pointer-events-none fixed -top-40 -left-24 -z-10 h-96 w-96 rounded-full bg-[#ff8ccd]/30 blur-[85px]" />
-      <div className="pointer-events-none fixed -right-20 bottom-0 -z-10 h-96 w-96 rounded-full bg-[#8decc3]/30 blur-[95px]" />
-
+    <div className="relative min-h-screen overflow-x-clip">
       <SiteHeader currentPage="commander" />
 
-      <main className="mx-auto w-[min(1200px,94%)] pt-6 sm:w-[min(1200px,92%)] sm:pt-10">
-        <section className="animate-reveal is-visible mb-8">
-          <p className="mb-2 text-xs font-extrabold tracking-[0.18em] text-[#966a7d] uppercase">
-            Finaliser ma commande
+      <main className="mx-auto w-[min(1200px,92%)] pt-12 sm:pt-16">
+        <section className="hero-in mb-10 max-w-3xl">
+          <h1 className="display-lg">Composez votre commande</h1>
+          <p className="lede mt-4">
+            Choisissez un produit, son parfum et la quantité : l&apos;aperçu se
+            met à jour en direct. Vous finalisez ensuite la livraison au panier.
           </p>
-          <h1 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-6xl">
-            Compose ton panier gourmand
-          </h1>
-          <p className="mt-3 max-w-2xl text-base text-[#775766] sm:text-lg">
-            Ajoute tes gateaux et cookies favoris, ajuste les quantites puis
-            envoie ta demande de commande.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <div className="inline-flex rounded-full bg-white/70 px-4 py-2 text-sm font-semibold text-[#6d4e5d]">
-              Livraison sur Houilles (78) et alentours.
-            </div>
-            <div className="inline-flex rounded-full bg-[#fff2f7] px-4 py-2 text-sm font-semibold text-[#a34d74]">
-              Trompe-l&apos;oeil disponibles a J+1 (pas le jour J).
-            </div>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <p className="note">
+              <span className="note-dot" aria-hidden="true">
+                ✦
+              </span>
+              Livraison à Houilles (78) et jusqu&apos;à 50 km
+            </p>
+            <p className="note">
+              <span className="note-dot bg-framboise-soft!" aria-hidden="true">
+                !
+              </span>
+              Trompe-l&apos;œil : à commander la veille (J+1)
+            </p>
           </div>
         </section>
 
-        <div className="grid gap-6 xl:grid-cols-[1.3fr_.7fr]">
-          <section id="catalogue" className="space-y-4">
-            <div className="glass flex flex-wrap gap-2 rounded-2xl p-3">
+        <div className="grid items-start gap-8 xl:grid-cols-[1fr_22rem]">
+          <section id="catalogue" className="space-y-6">
+            <div
+              className="tabs"
+              role="group"
+              aria-label="Filtrer par catégorie"
+            >
               {categories.map((category) => (
                 <button
                   key={category}
                   type="button"
+                  className="tab"
+                  aria-pressed={selectedCategory === category}
                   onClick={() => setSelectedCategory(category)}
-                  className={`rounded-full px-4 py-2 text-sm font-bold transition ${
-                    selectedCategory === category
-                      ? "bg-gradient-to-r from-[#ff72b6] to-[#ffa183] text-white shadow-[0_10px_25px_rgba(255,114,182,.35)]"
-                      : "bg-white text-[#6d4d5a]"
-                  }`}
                 >
                   {category}
                 </button>
               ))}
             </div>
 
-            <article className="glass group rounded-3xl p-4 shadow-[0_18px_45px_rgba(248,154,194,.14)]">
-              <div className="relative mb-4 h-52 overflow-hidden rounded-2xl bg-gradient-to-br from-[#ffd9ee] via-[#ffe9bf] to-[#d9ffe9]">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="formula-card-preview">
-                    <ProductBox3D category="Box" flavor="Mix surprise" label="BOX MIX" />
-                  </div>
+            <article
+              className="band grid overflow-hidden rounded-[1.75rem] sm:grid-cols-[1fr_1.1fr]"
+              style={{ "--band": "var(--pistache)" } as CSSProperties}
+            >
+              <div className="relative grid min-h-56 place-items-center">
+                <div className="formula-card-preview float-soft">
+                  <ProductBox3D
+                    category="Box"
+                    flavor="Mix surprise"
+                    label="BOX MIX"
+                  />
                 </div>
-                <span className="glass absolute top-3 left-3 rounded-full px-3 py-1 text-xs font-bold text-[#6d4d5a]">
-                  Personnalisable
-                </span>
-                <span className="absolute right-3 bottom-3 rounded-full bg-white px-3 py-1 text-sm font-black text-[#4f3340]">
-                  A partir de 29,00 EUR
-                </span>
               </div>
-              <h2 className="text-xl font-extrabold text-[#553a46]">
-                Formule Box Signature
-              </h2>
-              <p className="mt-1 text-sm text-[#765968]">
-                Compose ta box : produits, parfums et quantites. Ex: 2 cookies +
-                1 layer cake + 1 trompe-l&apos;oeil.
-              </p>
-              <button
-                type="button"
-                onClick={() => setFormulaModalOpen(true)}
-                className="mt-4 w-full rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-4 py-2.5 text-sm font-bold text-white shadow-[0_10px_25px_rgba(255,114,182,.35)]"
-              >
-                Selectionner
-              </button>
+              <div className="flex flex-col justify-center p-6 sm:p-8">
+                <p className="chip w-fit bg-chantilly!">À partir de 29,00 €</p>
+                <h2 className="display-md mt-3 text-pistache-deep!">
+                  La box à composer
+                </h2>
+                <p className="mt-2 text-ganache">
+                  Mélangez ce que vous voulez : 2 cookies, 1 layer cake, 1
+                  trompe-l&apos;œil… Idéal pour offrir.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setFormulaModalOpen(true)}
+                  className="btn btn-primary mt-5 w-fit"
+                >
+                  Composer ma box
+                </button>
+              </div>
             </article>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-2">
               {filteredProducts.map((item) => (
-                <article
-                  key={item.id}
-                  className={`glass group rounded-3xl p-4 shadow-[0_18px_45px_rgba(248,154,194,.14)] ${
-                    item.category === "Box"
-                      ? "ring-1 ring-[#ff8fc9]/55 shadow-[0_20px_50px_rgba(255,114,182,.26)]"
-                      : ""
-                  }`}
-                >
-                  <div className="relative mb-4 h-52 overflow-hidden rounded-2xl">
+                <article key={item.id} className="vitrine-card">
+                  <div className="vitrine-photo">
                     <Image
                       src={item.image}
                       alt={item.name}
                       fill
-                      className="object-cover transition duration-500 group-hover:scale-105"
+                      sizes="(min-width: 768px) 420px, 92vw"
+                      className="object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
-                    <span className="glass absolute top-3 left-3 rounded-full px-3 py-1 text-xs font-bold text-[#6d4d5a]">
+                    <span className="chip chip-framboise absolute top-3 right-3">
                       {item.tag}
                     </span>
-                    <span className="absolute right-3 bottom-3 rounded-full bg-white px-3 py-1 text-sm font-black text-[#4f3340]">
+                    <span className="price-tag absolute bottom-4 left-0">
                       {formatPrice(item.price)}
                     </span>
                   </div>
-                  <h2 className="text-xl font-extrabold text-[#553a46]">
-                    {item.name}
-                  </h2>
-                  <p className="mt-1 text-sm text-[#765968]">{item.description}</p>
-                  <p className="mt-2 text-xs font-bold text-[#8a6273]">
-                    Parfums: {item.flavors.join(", ")}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => openConfigModal(item)}
-                    className="mt-4 w-full rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-4 py-2.5 text-sm font-bold text-white shadow-[0_10px_25px_rgba(255,114,182,.35)]"
-                  >
-                    Selectionner
-                  </button>
+                  <div className="px-3 pt-5">
+                    <h2 className="text-xl leading-tight font-extrabold text-ganache">
+                      {item.name}
+                    </h2>
+                    <p className="mt-1.5 text-[0.98rem] text-cacao">
+                      {item.description}
+                    </p>
+                    <p className="mt-3 text-sm text-cacao">
+                      <span className="font-bold text-ganache">
+                        {item.flavors.length} parfums
+                      </span>{" "}
+                      : {item.flavors.join(", ")}
+                    </p>
+                  </div>
+                  <div className="mt-auto px-3 pt-5">
+                    <button
+                      type="button"
+                      onClick={() => openConfigModal(item)}
+                      className="btn btn-primary w-full"
+                    >
+                      Choisir le parfum
+                    </button>
+                  </div>
                 </article>
               ))}
             </div>
           </section>
 
-          <aside id="panier" className="glass h-fit rounded-3xl p-4 sm:p-5">
-            <h3 className="text-2xl font-black text-[#4f3340]">Mon panier</h3>
+          <aside id="panier" className="surface p-6 xl:sticky xl:top-28">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="font-display text-3xl">Mon panier</h2>
+              <p className="text-sm font-semibold text-cacao">
+                {cartItems.reduce((sum, item) => sum + item.qty, 0)} article(s)
+              </p>
+            </div>
             {cartItems.length === 0 ? (
-              <p className="mt-3 text-sm text-[#7a5d6a]">
-                Ton panier est vide. Ajoute des produits depuis le catalogue.
+              <p className="mt-4 rounded-2xl bg-lait-fraise p-4 text-[0.95rem] text-cacao">
+                Votre panier est vide. Choisissez un produit pour commencer.
               </p>
             ) : (
-              <ul className="mt-4 space-y-3">
+              <ul className="mt-4 divide-y divide-line">
                 {cartItems.map((item) => (
-                  <li
-                    key={item.key}
-                    className="rounded-2xl bg-white/70 p-3 text-sm text-[#5f434f]"
-                  >
-                    <p className="font-bold">{item.name}</p>
-                    <p className="text-xs font-semibold text-[#7a5b6b]">
-                      Parfum: {item.flavor}
-                    </p>
-                    <p>
-                      {item.qty} x {formatPrice(item.price)} ={" "}
-                      <span className="font-bold">{formatPrice(item.total)}</span>
-                    </p>
-                    <div className="mt-2 flex items-center gap-2">
+                  <li key={item.key} className="flex items-center gap-3 py-3">
+                    <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl">
+                      <Image
+                        src={item.image}
+                        alt=""
+                        fill
+                        sizes="56px"
+                        className="object-cover"
+                      />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-bold text-ganache">
+                        {item.name}
+                      </p>
+                      <p className="truncate text-sm text-cacao">
+                        {item.flavor}
+                      </p>
+                      <p className="text-sm font-bold tabular-nums">
+                        {formatPrice(item.total)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => decreaseCartQty(item.key)}
-                        className="h-8 w-8 rounded-full bg-white text-base font-black text-[#734d5f] shadow"
-                        aria-label={`Retirer ${item.name}`}
+                        className="btn btn-soft h-8! min-h-8! w-8 p-0!"
+                        aria-label={`Retirer un ${item.name}`}
                       >
-                        -
+                        −
                       </button>
+                      <span className="w-6 text-center font-bold tabular-nums">
+                        {item.qty}
+                      </span>
                       <button
                         type="button"
                         onClick={() => increaseCartQty(item.key)}
-                        className="h-8 w-8 rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] text-base font-black text-white shadow"
-                        aria-label={`Ajouter ${item.name}`}
+                        className="btn btn-primary h-8! min-h-8! w-8 p-0! shadow-none!"
+                        aria-label={`Ajouter un ${item.name}`}
                       >
                         +
                       </button>
@@ -1065,185 +1147,170 @@ function CommanderPageContent() {
               </ul>
             )}
 
-            <div className="mt-5 space-y-2 rounded-2xl bg-white/70 p-4 text-sm text-[#644653]">
-              <p className="flex items-center justify-between">
-                <span>Sous-total</span>
-                <span className="font-bold">{formatPrice(subtotal)}</span>
-              </p>
-              <p className="flex items-center justify-between">
-                <span>Livraison rapide</span>
-                <span className="font-bold">{formatPrice(delivery)}</span>
-              </p>
-              <p className="flex items-center justify-between border-t border-white pt-2 text-base">
-                <span className="font-extrabold">Total</span>
-                <span className="font-extrabold">{formatPrice(grandTotal)}</span>
-              </p>
+            <div className="mt-4 flex items-center justify-between border-t-2 border-ganache pt-4">
+              <span className="font-bold">Sous-total</span>
+              <span className="text-xl font-extrabold tabular-nums">
+                {formatPrice(subtotal)}
+              </span>
             </div>
+            <p className="mt-1 text-sm text-cacao">
+              Frais de livraison calculés selon votre ville à l&apos;étape
+              suivante.
+            </p>
 
-            <form onSubmit={submitOrder} className="mt-5 space-y-3">
-              <input
-                required
-                placeholder="Nom complet"
-                className="w-full rounded-xl border border-white/80 bg-white/85 px-3 py-2 text-sm text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
-              />
-              <input
-                required
-                type="tel"
-                placeholder="Telephone"
-                className="w-full rounded-xl border border-white/80 bg-white/85 px-3 py-2 text-sm text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
-              />
-              <textarea
-                placeholder="Adresse de livraison"
-                rows={3}
-                className="w-full rounded-xl border border-white/80 bg-white/85 px-3 py-2 text-sm text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
-              />
-              <button
-                type="submit"
-                disabled={cartItems.length === 0}
-                className="w-full rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-5 py-3 font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Envoyer la commande
-              </button>
-            </form>
-
-            {isSubmitted && (
-              <p className="mt-3 rounded-xl bg-[#dffce9] px-3 py-2 text-sm font-semibold text-[#24583c]">
-                Commande envoyee. On te recontacte rapidement pour confirmation.
-              </p>
-            )}
+            <Link
+              href="/checkout"
+              aria-disabled={cartItems.length === 0}
+              className={`btn btn-primary mt-5 w-full ${
+                cartItems.length === 0 ? "pointer-events-none opacity-45" : ""
+              }`}
+            >
+              Finaliser ma commande
+            </Link>
           </aside>
         </div>
       </main>
 
       {formulaModalOpen && (
         <div
-          className="fixed inset-0 z-[75] flex items-start justify-center overflow-y-auto bg-black/45 p-2 sm:p-4"
+          className="dialog-backdrop fixed inset-0 z-[75] flex items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-6"
           onClick={() => setFormulaModalOpen(false)}
         >
           <div
-            className="glass grid max-h-[calc(100dvh-1rem)] w-full max-w-6xl grid-cols-1 gap-0 overflow-y-auto rounded-[1.4rem] lg:max-h-[calc(100dvh-2rem)] lg:grid-cols-2 lg:overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="formula-dialog-title"
+            className="dialog-panel grid max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl grid-cols-1 overflow-y-auto rounded-[2rem] bg-chantilly lg:max-h-[calc(100dvh-3rem)] lg:grid-cols-[1.1fr_.9fr] lg:overflow-hidden"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="bg-white/72 p-4 sm:p-6">
-              <div className="mb-4 flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-xs font-extrabold tracking-[0.16em] text-[#966a7d] uppercase">
-                    Formule box personnalisable
-                  </p>
-                  <h2 className="text-3xl font-black text-[#4f3340]">
-                    Compose ta box librement
-                  </h2>
-                </div>
+            <div className="p-6 sm:p-8 lg:overflow-y-auto">
+              <div className="flex items-start justify-between gap-3">
+                <h2 id="formula-dialog-title" className="display-md">
+                  Composez votre box
+                </h2>
                 <button
                   type="button"
                   onClick={() => setFormulaModalOpen(false)}
-                  className="rounded-full bg-white px-3 py-1 text-sm font-bold text-[#734d5f]"
+                  className="btn btn-soft btn-round"
+                  aria-label="Fermer"
                 >
-                  Fermer
+                  ×
                 </button>
               </div>
 
-              <p className="text-sm text-[#6f515f]">
-                Choisis les produits et parfums, puis ajoute ta formule en un clic.
+              <p className="mt-2 text-cacao">
+                Une ligne par produit : choisissez le parfum et la quantité.
               </p>
 
-              <div className="mt-4 space-y-3">
+              <div className="mt-6 space-y-3">
                 {formulaRows.map((row, index) => {
-                  const product = productCatalog.find((item) => item.id === row.productId);
+                  const product = productCatalog.find(
+                    (item) => item.id === row.productId,
+                  );
                   const flavors = product?.flavors ?? [];
                   return (
                     <div
                       key={`formula-row-${index}`}
-                      className="rounded-2xl bg-white/70 p-3 grid gap-2 md:grid-cols-[1.3fr_1.1fr_88px_44px]"
+                      className="grid grid-cols-[1fr_5rem_2.5rem] gap-2 rounded-2xl bg-lait-fraise p-3 md:grid-cols-[1.3fr_1.1fr_5rem_2.5rem]"
                     >
-                      <select
-                        value={row.productId}
-                        onChange={(event) =>
-                          updateFormulaProduct(index, event.target.value)
-                        }
-                        className="rounded-xl border border-white/80 bg-white px-3 py-2 text-sm font-semibold text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
-                      >
-                        {productCatalog
-                          .filter((item) => item.category !== "Box")
-                          .map((item) => (
-                            <option key={item.id} value={item.id}>
-                              {item.name}
+                      <label className="col-span-3 md:col-span-1">
+                        <span className="sr-only">Produit</span>
+                        <select
+                          value={row.productId}
+                          onChange={(event) =>
+                            updateFormulaProduct(index, event.target.value)
+                          }
+                          className="field mt-0! font-semibold"
+                        >
+                          {productCatalog
+                            .filter((item) => item.category !== "Box")
+                            .map((item) => (
+                              <option key={item.id} value={item.id}>
+                                {item.name}
+                              </option>
+                            ))}
+                        </select>
+                      </label>
+
+                      <label>
+                        <span className="sr-only">Parfum</span>
+                        <select
+                          value={row.flavor}
+                          onChange={(event) =>
+                            updateFormulaFlavor(index, event.target.value)
+                          }
+                          className="field mt-0!"
+                        >
+                          {flavors.map((flavor) => (
+                            <option key={flavor} value={flavor}>
+                              {flavor}
                             </option>
                           ))}
-                      </select>
+                        </select>
+                      </label>
 
-                      <select
-                        value={row.flavor}
-                        onChange={(event) => updateFormulaFlavor(index, event.target.value)}
-                        className="rounded-xl border border-white/80 bg-white px-3 py-2 text-sm font-semibold text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
-                      >
-                        {flavors.map((flavor) => (
-                          <option key={flavor} value={flavor}>
-                            {flavor}
-                          </option>
-                        ))}
-                      </select>
-
-                      <input
-                        type="number"
-                        min={0}
-                        max={30}
-                        value={row.qty}
-                        onChange={(event) =>
-                          updateFormulaQty(index, Number(event.target.value))
-                        }
-                        className="rounded-xl border border-white/80 bg-white px-3 py-2 text-sm font-bold text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
-                      />
+                      <label>
+                        <span className="sr-only">Quantité</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={30}
+                          value={row.qty}
+                          onChange={(event) =>
+                            updateFormulaQty(index, Number(event.target.value))
+                          }
+                          className="field mt-0! text-center font-bold"
+                        />
+                      </label>
 
                       <button
                         type="button"
                         onClick={() => removeFormulaRow(index)}
-                        className="rounded-xl bg-white text-sm font-black text-[#7a5769]"
-                        aria-label="Retirer ligne formule"
+                        className="rounded-xl text-xl font-bold text-cacao hover:bg-white hover:text-framboise"
+                        aria-label="Retirer cette ligne"
                       >
-                        X
+                        ×
                       </button>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-3">
+              <div className="mt-5 flex flex-wrap items-center gap-3">
                 <button
                   type="button"
                   onClick={addFormulaRow}
-                  className="rounded-full bg-white px-4 py-2 text-sm font-bold text-[#6d4d5a]"
+                  className="btn btn-outline btn-sm"
                 >
-                  + Ajouter une ligne
+                  + Ajouter un produit
                 </button>
                 <button
                   type="button"
                   onClick={addFormulaToCart}
-                  className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-5 py-2.5 text-sm font-bold text-white shadow-[0_10px_25px_rgba(255,114,182,.35)]"
+                  className="btn btn-primary"
                 >
-                  Ajouter la formule au panier
+                  Ajouter la box au panier
                 </button>
               </div>
 
               {formulaFeedback && (
-                <p className="mt-3 text-sm font-semibold text-[#6a4c5b]">
+                <p
+                  className="mt-4 font-semibold text-pistache-deep"
+                  role="status"
+                >
                   {formulaFeedback}
                 </p>
               )}
             </div>
 
-            <div className="relative overflow-hidden p-4 sm:p-6">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#ffe5f4] via-[#fff2ce] to-[#dffdeb]" />
-              <div className="absolute inset-0 bg-gradient-to-br from-[#ffd5e9]/45 to-[#fff4d8]/20" />
-              <div className="relative z-10">
-                <p className="text-xs font-extrabold tracking-[0.16em] text-[#7f5f6f] uppercase">
-                  Apercu 3D de la formule
-                </p>
-                <h3 className="text-2xl font-black text-[#4f3340]">
-                  Box personnalisee - {formatPrice(formulaTotal)}
-                </h3>
-                <FormulaBox3DPreview rows={formulaRows} />
-              </div>
+            <div className="flex flex-col justify-center bg-lait-fraise p-6 sm:p-8">
+              <p className="text-sm font-semibold text-cacao">
+                Aperçu de votre box
+              </p>
+              <p className="mt-1 text-4xl font-extrabold tabular-nums">
+                {formatPrice(formulaTotal)}
+              </p>
+              <FormulaBox3DPreview rows={formulaRows} />
             </div>
           </div>
         </div>
@@ -1251,124 +1318,136 @@ function CommanderPageContent() {
 
       {modalOpen && selectedProduct && (
         <div
-          className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-black/45 p-2 sm:p-4"
+          className="dialog-backdrop fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-6"
           onClick={() => setModalOpen(false)}
         >
           <div
-            className="glass grid max-h-[calc(100dvh-1rem)] w-full max-w-5xl grid-cols-1 gap-0 overflow-y-auto rounded-[1.4rem] lg:max-h-[calc(100dvh-2rem)] lg:grid-cols-2 lg:overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="config-dialog-title"
+            className="dialog-panel grid max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl grid-cols-1 overflow-y-auto rounded-[2rem] bg-chantilly lg:max-h-[calc(100dvh-3rem)] lg:grid-cols-2 lg:overflow-hidden"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="bg-white/72 p-4 sm:p-6">
-              <div className="mb-4 flex items-start justify-between gap-2">
+            <div className="p-6 sm:p-8 lg:overflow-y-auto">
+              <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-extrabold tracking-[0.16em] text-[#966a7d] uppercase">
-                    Configuration produit
-                  </p>
-                  <h2 className="text-3xl font-black text-[#4f3340]">
+                  <span className="chip chip-framboise">
+                    {selectedProduct.category}
+                  </span>
+                  <h2 id="config-dialog-title" className="display-md mt-3">
                     {selectedProduct.name}
                   </h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="rounded-full bg-white px-3 py-1 text-sm font-bold text-[#734d5f]"
+                  className="btn btn-soft btn-round"
+                  aria-label="Fermer"
                 >
-                  Fermer
+                  ×
                 </button>
               </div>
 
-              <p className="text-sm text-[#6f515f]">{selectedProduct.description}</p>
+              <p className="mt-2 text-cacao">{selectedProduct.description}</p>
 
-              <label className="mt-5 block text-sm font-bold text-[#725161]">
-                Parfum
-                <select
-                  value={modalFlavor}
-                  onChange={(event) => setModalFlavor(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-white/80 bg-white px-3 py-2 text-sm font-medium text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
-                >
+              <fieldset className="mt-6">
+                <legend className="field-label">Parfum</legend>
+                <div className="mt-2 flex flex-wrap gap-2">
                   {selectedProduct.flavors.map((flavor) => (
-                    <option key={flavor} value={flavor}>
+                    <button
+                      key={flavor}
+                      type="button"
+                      className="tab"
+                      aria-pressed={modalFlavor === flavor}
+                      onClick={() => setModalFlavor(flavor)}
+                    >
                       {flavor}
-                    </option>
+                    </button>
                   ))}
-                </select>
-              </label>
+                </div>
+              </fieldset>
 
-              <div className="mt-5">
-                <p className="text-sm font-bold text-[#725161]">Quantite</p>
-                <div className="mt-2 flex items-center gap-2">
+              <div className="mt-6">
+                <p className="field-label" id="qty-label">
+                  Quantité
+                </p>
+                <div
+                  className="mt-2 flex items-center gap-2"
+                  role="group"
+                  aria-labelledby="qty-label"
+                >
                   <button
                     type="button"
-                    onClick={() => setModalQty((value) => Math.max(1, value - 1))}
-                    className="h-10 w-10 rounded-full bg-white text-lg font-black text-[#734d5f] shadow"
+                    onClick={() =>
+                      setModalQty((value) => Math.max(1, value - 1))
+                    }
+                    className="btn btn-soft btn-round"
+                    aria-label="Diminuer la quantité"
                   >
-                    -
+                    −
                   </button>
                   <input
                     type="number"
                     min={1}
                     max={30}
                     value={modalQty}
+                    aria-label="Quantité"
                     onChange={(event) => {
                       const value = Number(event.target.value);
                       setModalQty(
-                        Number.isNaN(value) ? 1 : Math.min(30, Math.max(1, value))
+                        Number.isNaN(value)
+                          ? 1
+                          : Math.min(30, Math.max(1, value)),
                       );
                     }}
-                    className="w-20 rounded-xl border border-white/80 bg-white px-3 py-2 text-center text-sm font-bold text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0]"
+                    className="field mt-0! w-20 text-center font-bold"
                   />
                   <button
                     type="button"
-                    onClick={() => setModalQty((value) => Math.min(30, value + 1))}
-                    className="h-10 w-10 rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] text-lg font-black text-white shadow"
+                    onClick={() =>
+                      setModalQty((value) => Math.min(30, value + 1))
+                    }
+                    className="btn btn-primary btn-round shadow-none!"
+                    aria-label="Augmenter la quantité"
                   >
                     +
                   </button>
                 </div>
               </div>
 
-              <div className="mt-6 rounded-2xl bg-white/70 p-3 text-sm text-[#654755]">
-                <p>
-                  Selection: <b>{modalQty}</b> x <b>{selectedProduct.name}</b>
-                </p>
-                <p>
-                  Parfum: <b>{modalFlavor}</b>
-                </p>
-                <p>
-                  Prix estime: <b>{formatPrice(selectedProduct.price * modalQty)}</b>
-                </p>
+              <div className="mt-8 flex items-center justify-between gap-4 border-t-2 border-ganache pt-5">
+                <div>
+                  <p className="text-sm text-cacao">
+                    {modalQty} × {modalFlavor}
+                  </p>
+                  <p className="text-2xl font-extrabold tabular-nums">
+                    {formatPrice(selectedProduct.price * modalQty)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={confirmModalSelection}
+                  className="btn btn-primary"
+                >
+                  Ajouter au panier
+                </button>
               </div>
-
-              <button
-                type="button"
-                onClick={confirmModalSelection}
-                className="mt-5 w-full rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-5 py-3 font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)] transition hover:-translate-y-0.5"
-              >
-                Ajouter au panier
-              </button>
             </div>
 
-            <div className="relative overflow-hidden p-4 sm:p-6">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#ffe5f4] via-[#fff2ce] to-[#dffdeb]" />
-              <div
-                className={`absolute inset-0 bg-gradient-to-br ${getPreviewOverlay(
-                  selectedProduct.category
-                )}`}
+            <div
+              className={`relative flex flex-col justify-center bg-gradient-to-br p-6 sm:p-8 ${getPreviewOverlay(selectedProduct.category)}`}
+            >
+              <p className="text-sm font-semibold text-cacao">
+                Aperçu en direct
+              </p>
+              <p className="display-md mt-1">
+                {modalQty} {modalQty > 1 ? "pièces" : "pièce"}
+              </p>
+              <Dynamic3DPreview
+                product={selectedProduct}
+                flavor={modalFlavor}
+                qty={modalQty}
               />
-              <div className="relative z-10">
-                <p className="text-xs font-extrabold tracking-[0.16em] text-[#7f5f6f] uppercase">
-                  Apercu dynamique
-                </p>
-                <h3 className="text-2xl font-black text-[#4f3340]">
-                  {modalQty} {modalQty > 1 ? "pieces" : "piece"} - {modalFlavor}
-                </h3>
-
-                <Dynamic3DPreview
-                  product={selectedProduct}
-                  flavor={modalFlavor}
-                  qty={modalQty}
-                />
-              </div>
             </div>
           </div>
         </div>

@@ -23,16 +23,14 @@ const distanceInKm = (
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ) => {
   const earthRadiusKm = 6371;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) ** 2;
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   return 2 * earthRadiusKm * Math.asin(Math.sqrt(a));
 };
 
@@ -45,11 +43,11 @@ const getZoneFromDistance = (distanceKm: number): LookupResult["zone"] => {
 
 const getPriceLabel = (zone: LookupResult["zone"]) => {
   if (zone === "A") {
-    return "Gratuit des 15 EUR de commande, sinon 5,00 EUR";
+    return "Offerte dès 15 € de commande, sinon 5 €";
   }
-  if (zone === "B") return "5,00 EUR";
-  if (zone === "C") return "15,00 EUR";
-  return "Livraison non disponible (au-dela de 50 km).";
+  if (zone === "B") return "5 €";
+  if (zone === "C") return "15 €";
+  return "Pas de livraison au-delà de 50 km, mais le retrait à l'atelier reste possible.";
 };
 
 export default function LivraisonPage() {
@@ -62,7 +60,7 @@ export default function LivraisonPage() {
     event.preventDefault();
     const query = cityInput.trim();
     if (!query) {
-      setLookupError("Saisis une ville pour verifier la livraison.");
+      setLookupError("Entrez une ville pour vérifier la livraison.");
       setCityResult(null);
       return;
     }
@@ -74,8 +72,8 @@ export default function LivraisonPage() {
     try {
       const response = await fetch(
         `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(
-          query
-        )}&type=municipality&limit=1`
+          query,
+        )}&type=municipality&limit=1`,
       );
       if (!response.ok) {
         throw new Error("Erreur service adresse");
@@ -93,7 +91,9 @@ export default function LivraisonPage() {
       const postcode = best?.properties?.postcode;
 
       if (!coords || !city || !postcode) {
-        setLookupError("Ville introuvable. Essaie avec un autre nom.");
+        setLookupError(
+          "Ville introuvable. Vérifiez l'orthographe ou essayez une commune voisine.",
+        );
         setCityResult(null);
         return;
       }
@@ -111,7 +111,9 @@ export default function LivraisonPage() {
         priceLabel: getPriceLabel(zone),
       });
     } catch {
-      setLookupError("Service temporairement indisponible. Reessaie dans un instant.");
+      setLookupError(
+        "Le service d'adresses ne répond pas. Réessayez dans un instant.",
+      );
       setCityResult(null);
     } finally {
       setIsSearching(false);
@@ -119,112 +121,210 @@ export default function LivraisonPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-x-clip pb-10">
+    <div className="relative min-h-screen overflow-x-clip">
       <SiteHeader currentPage="livraison" />
-      <main className="mx-auto w-[min(1000px,94%)] py-6 sm:w-[min(1000px,92%)] sm:py-10">
-        <div className="glass rounded-3xl p-4 sm:p-8">
-        <p className="mb-2 text-xs font-extrabold tracking-[0.16em] text-[#966a7d] uppercase">
-          Livraison
-        </p>
-        <h1 className="text-3xl font-black tracking-tight text-[#4f3340] sm:text-5xl">
-          Houilles (78) et ses alentours
-        </h1>
-        <p className="mt-3 max-w-3xl text-[#715260]">
-          Nous livrons vos commandes gourmandes sur Houilles et jusqu&apos;a 50 km
-          maximum. Le retrait atelier est aussi disponible sur reservation.
-        </p>
-        <p className="mt-2 inline-flex rounded-full bg-[#fff2f7] px-4 py-2 text-sm font-semibold text-[#a34d74]">
-          Note : les trompe-l&apos;oeil sont disponibles a J+1 (pas le jour J).
-        </p>
+      <main className="mx-auto w-[min(1100px,92%)] pt-12 sm:pt-16">
+        <section className="grid items-center gap-12 lg:grid-cols-[1fr_1fr]">
+          <div className="hero-in">
+            <h1 className="display-lg">On livre autour de Houilles</h1>
+            <p className="lede mt-4">
+              Jusqu&apos;à 50 km autour de l&apos;atelier, le jour même. Les
+              trompe-l&apos;œil sont livrés à J+1. Le retrait à l&apos;atelier
+              est possible sur réservation.
+            </p>
 
-        <div className="mt-6 rounded-2xl bg-white/70 p-4">
-          <p className="text-sm font-extrabold text-[#5c3f4c]">
-            Verifier le tarif de livraison par ville
+            <form className="surface mt-8 p-5" onSubmit={handleLookup}>
+              <label htmlFor="city" className="field-label">
+                Quel tarif pour ma ville ?
+              </label>
+              <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+                <input
+                  id="city"
+                  value={cityInput}
+                  onChange={(event) => setCityInput(event.target.value)}
+                  placeholder="Houilles, Nanterre, Versailles…"
+                  autoComplete="address-level2"
+                  className="field mt-0! flex-1"
+                />
+                <button
+                  type="submit"
+                  disabled={isSearching}
+                  className="btn btn-primary"
+                >
+                  {isSearching ? "Recherche…" : "Vérifier"}
+                </button>
+              </div>
+              {lookupError && (
+                <p
+                  className="mt-3 text-[0.95rem] font-semibold text-framboise"
+                  role="alert"
+                >
+                  {lookupError}
+                </p>
+              )}
+              {cityResult && (
+                <div
+                  className="mt-4 rounded-2xl bg-lait-fraise p-4"
+                  role="status"
+                >
+                  <p className="text-lg font-extrabold">
+                    {cityResult.city} ({cityResult.postcode})
+                  </p>
+                  <p className="text-[0.95rem] text-cacao">
+                    {cityResult.distanceKm.toFixed(1).replace(".", ",")} km de
+                    l&apos;atelier
+                    {cityResult.zone !== "Hors zone" && (
+                      <>, zone {cityResult.zone}</>
+                    )}
+                  </p>
+                  <p className="mt-1 font-bold text-framboise">
+                    {cityResult.priceLabel}
+                  </p>
+                </div>
+              )}
+            </form>
+          </div>
+
+          <ZoneMap activeZone={cityResult?.zone} />
+        </section>
+
+        <section className="mt-20">
+          <h2 className="display-md">Les tarifs par zone</h2>
+          <div className="mt-6 grid gap-6 md:grid-cols-3">
+            {zoneDetails.map((zone) => (
+              <article
+                key={zone.id}
+                className={`rounded-[1.75rem] p-6 transition ${
+                  cityResult?.zone === zone.id
+                    ? "bg-ganache text-chantilly"
+                    : "surface"
+                }`}
+              >
+                <p className="font-display text-3xl">Zone {zone.id}</p>
+                <p className="mt-1 font-semibold">{zone.range}</p>
+                <p
+                  className={`mt-3 text-[0.95rem] ${cityResult?.zone === zone.id ? "text-chantilly/80" : "text-cacao"}`}
+                >
+                  {zone.examples}
+                </p>
+                <p className="mt-4 text-xl font-extrabold">{zone.price}</p>
+              </article>
+            ))}
+          </div>
+          <p className="mt-6 text-cacao">
+            Au-delà de 50 km, la livraison n&apos;est pas disponible.
           </p>
-          <form className="mt-2 flex flex-wrap items-center gap-2" onSubmit={handleLookup}>
-            <input
-              value={cityInput}
-              onChange={(event) => setCityInput(event.target.value)}
-              placeholder="Ex: Houilles, Nanterre, Versailles..."
-              className="w-full min-w-0 flex-1 rounded-xl border border-white/80 bg-white px-3 py-2 text-sm text-[#5f414d] outline-none focus:ring-2 focus:ring-[#ff9dd0] sm:min-w-[230px]"
-            />
-            <button
-              type="submit"
-              disabled={isSearching}
-              className="w-full rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-4 py-2 text-sm font-bold text-white shadow-[0_10px_25px_rgba(255,114,182,.35)] disabled:opacity-60 sm:w-auto"
-            >
-              {isSearching ? "Recherche..." : "Verifier"}
-            </button>
-          </form>
-          {lookupError && (
-            <p className="mt-2 text-sm font-semibold text-[#a34d74]">{lookupError}</p>
-          )}
-          {cityResult && (
-            <div className="mt-3 rounded-xl bg-[#fff7fb] p-3 text-sm text-[#6d4d5a]">
-              <p className="font-extrabold">
-                {cityResult.city} ({cityResult.postcode})
-              </p>
-              <p className="mt-1">Zone : {cityResult.zone}</p>
-              <p>Distance estimee : {cityResult.distanceKm.toFixed(1)} km</p>
-              <p className="font-semibold">{cityResult.priceLabel}</p>
-            </div>
-          )}
-        </div>
+        </section>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <article className="glass rounded-2xl p-4">
-            <p className="text-sm font-extrabold text-[#5c3f4c]">Zone A</p>
-            <p className="mt-1 text-sm text-[#735665]">Jusqu&apos;a 15 km autour de Houilles</p>
-            <p className="mt-1 text-xs text-[#866676]">
-              Exemples : Carrières-sur-Seine, Sartrouville, Bezons, Chatou,
-              Montesson.
-            </p>
-            <p className="mt-2 text-sm font-bold text-[#5c3f4c]">
-              Gratuit des 15 EUR de commande, sinon 5,00 EUR
-            </p>
-          </article>
-          <article className="glass rounded-2xl p-4">
-            <p className="text-sm font-extrabold text-[#5c3f4c]">Zone B</p>
-            <p className="mt-1 text-sm text-[#735665]">Entre 15 km et 25 km</p>
-            <p className="mt-1 text-xs text-[#866676]">
-              Exemples : Nanterre, Colombes, Rueil-Malmaison, Le Vésinet,
-              Courbevoie.
-            </p>
-            <p className="mt-2 text-sm font-bold text-[#5c3f4c]">5,00 EUR</p>
-          </article>
-          <article className="glass rounded-2xl p-4">
-            <p className="text-sm font-extrabold text-[#5c3f4c]">Zone C</p>
-            <p className="mt-1 text-sm text-[#735665]">Plus de 25 km et jusqu&apos;a 50 km max</p>
-            <p className="mt-1 text-xs text-[#866676]">
-              Exemples : Versailles, Saint-Germain-en-Laye, Boulogne-Billancourt.
-            </p>
-            <p className="mt-2 text-sm font-bold text-[#5c3f4c]">15,00 EUR</p>
-          </article>
-        </div>
-
-        <p className="mt-4 text-sm font-semibold text-[#7a5b69]">
-          Au-dela de 50 km : livraison non disponible.
-        </p>
-
-        <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap">
-          <Link
-            href="/commander"
-            className="rounded-full bg-gradient-to-r from-[#ff72b6] to-[#ffa183] px-6 py-3 text-center font-bold text-white shadow-[0_14px_35px_rgba(255,114,182,.32)]"
-          >
-            Commander maintenant
+        <div className="mt-12 flex flex-wrap gap-3">
+          <Link href="/commander" className="btn btn-primary">
+            Commander
           </Link>
-          <Link
-            href="/livraison/planifier"
-            className="rounded-full bg-white px-6 py-3 text-center text-sm font-bold text-[#6d4d5a] shadow-[0_10px_25px_rgba(255,114,182,.15)]"
-          >
-            Choisir jour et creneau
+          <Link href="/livraison/planifier" className="btn btn-outline">
+            Choisir mon jour et mon créneau
           </Link>
-          <Link href="/contact" className="glass rounded-full px-6 py-3 text-center font-bold text-[#6d4d5a]">
+          <Link href="/contact" className="btn btn-soft">
             Poser une question
           </Link>
         </div>
-        </div>
       </main>
     </div>
+  );
+}
+
+const zoneDetails = [
+  {
+    id: "A",
+    range: "Jusqu'à 15 km",
+    examples: "Carrières-sur-Seine, Sartrouville, Bezons, Chatou, Montesson",
+    price: "Offerte dès 15 €, sinon 5 €",
+  },
+  {
+    id: "B",
+    range: "De 15 à 25 km",
+    examples: "Nanterre, Colombes, Rueil-Malmaison, Le Vésinet, Courbevoie",
+    price: "5 €",
+  },
+  {
+    id: "C",
+    range: "De 25 à 50 km",
+    examples: "Versailles, Saint-Germain-en-Laye, Boulogne-Billancourt",
+    price: "15 €",
+  },
+];
+
+// Anneaux proportionnels aux rayons réels (15, 25 et 50 km).
+function ZoneMap({ activeZone }: { activeZone?: LookupResult["zone"] }) {
+  const rings = [
+    { id: "C", r: 190, fill: "var(--chantilly)", label: "50 km" },
+    { id: "B", r: 95, fill: "var(--framboise-soft)", label: "25 km" },
+    { id: "A", r: 57, fill: "var(--pistache)", label: "15 km" },
+  ];
+  return (
+    <figure
+      className="mx-auto w-full max-w-[30rem]"
+      aria-label="Carte des zones de livraison autour de Houilles"
+    >
+      <svg
+        viewBox="0 0 400 400"
+        className="w-full"
+        role="img"
+        aria-hidden="true"
+      >
+        {rings.map((ring) => {
+          const active = activeZone === ring.id;
+          return (
+            <g key={ring.id}>
+              <circle
+                cx="200"
+                cy="200"
+                r={ring.r}
+                fill={active ? "var(--framboise)" : ring.fill}
+                stroke="var(--ganache)"
+                strokeWidth={active ? 3 : 1.5}
+                strokeDasharray={ring.id === "C" ? "6 6" : undefined}
+                style={{ transition: "fill 300ms ease" }}
+              />
+              <text
+                x="200"
+                y={200 - ring.r + 20}
+                textAnchor="middle"
+                className="font-display"
+                fontSize="18"
+                fill={active ? "#fff" : "var(--ganache)"}
+              >
+                {ring.id}
+              </text>
+              <text
+                x="200"
+                y={200 + ring.r - 10}
+                textAnchor="middle"
+                fontSize="13"
+                fontWeight="700"
+                fill={active ? "#fff" : "var(--cacao)"}
+              >
+                {ring.label}
+              </text>
+            </g>
+          );
+        })}
+        <circle
+          cx="200"
+          cy="200"
+          r="7"
+          fill={activeZone === "A" ? "#fff" : "var(--ganache)"}
+        />
+        <text
+          x="200"
+          y="224"
+          textAnchor="middle"
+          fontSize="15"
+          fontWeight="800"
+          fill={activeZone === "A" ? "#fff" : "var(--ganache)"}
+        >
+          Houilles
+        </text>
+      </svg>
+    </figure>
   );
 }
