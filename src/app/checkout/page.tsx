@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { formatPrice, productCatalog } from "@/data/products";
 import { SiteHeader } from "@/components/site-header";
 import { useCart } from "@/context/cart-context";

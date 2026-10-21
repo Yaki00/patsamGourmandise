@@ -6,11 +6,11 @@ import {
   useInView,
   useMotionTemplate,
   useMotionValue,
-  useReducedMotion,
   useSpring,
   useTransform,
   type HTMLMotionProps,
 } from "motion/react";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { Fragment, ReactNode, useEffect, useRef, useState } from "react";
 
 export const easeOut = [0.2, 0.8, 0.2, 1] as const;

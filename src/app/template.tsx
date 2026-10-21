@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 // Rejoué à chaque navigation : la nouvelle page glisse doucement en place.
 export default function Template({ children }: { children: React.ReactNode }) {

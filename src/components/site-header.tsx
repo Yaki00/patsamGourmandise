@@ -6,9 +6,9 @@ import {
   AnimatePresence,
   motion,
   useMotionValueEvent,
-  useReducedMotion,
   useScroll,
 } from "motion/react";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { CartPill } from "@/components/cart-pill";
 import { contact } from "@/data/site";
 

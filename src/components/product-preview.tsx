@@ -4,7 +4,8 @@
 // partagés par la fiche produit et la box à composer.
 
 import { CSSProperties, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { Product, productCatalog } from "@/data/products";
 
 export type FormulaRow = { productId: string; flavor: string; qty: number };

@@ -8,10 +8,10 @@ import {
   LayoutGroup,
   motion,
   MotionValue,
-  useReducedMotion,
   useScroll,
   useTransform,
 } from "motion/react";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import {
   formatPrice,
   getDeliveryDelay,

@@ -8,7 +8,8 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { SiteHeader } from "@/components/site-header";
 import { easeOut, Magnetic, Reveal, SplitWords } from "@/components/fx";
 import { sprinkleBurst } from "@/lib/sprinkles";

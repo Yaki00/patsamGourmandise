@@ -1,0 +1,14 @@
+# Déploiement VPS Pixel Brain : derrière le reverse proxy central (/opt/reverse-proxy).
+services:
+  web:
+    build: .
+    image: patsam-web
+    container_name: patsam-web
+    restart: unless-stopped
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
+    name: docker_ekowrk-network
