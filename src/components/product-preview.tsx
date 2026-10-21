@@ -18,7 +18,11 @@ export const normalizeFlavor = (value: string) =>
 
 export const getFlavorPalette = (flavor: string) => {
   const value = normalizeFlavor(flavor);
-  if (value.includes("fraise") || value.includes("framboise")) {
+  if (
+    value.includes("fraise") ||
+    value.includes("framboise") ||
+    value.includes("fruits rouges")
+  ) {
     return { main: "#ff7ebf", dark: "#c94986", light: "#ffd0e9" };
   }
   if (value.includes("choco") || value.includes("cacao")) {
@@ -33,8 +37,15 @@ export const getFlavorPalette = (flavor: string) => {
   if (value.includes("pistache")) {
     return { main: "#95d7aa", dark: "#4f9869", light: "#ddf6e6" };
   }
-  if (value.includes("mango") || value.includes("citron")) {
+  if (
+    value.includes("mango") ||
+    value.includes("mangue") ||
+    value.includes("citron")
+  ) {
     return { main: "#ffba4b", dark: "#d68e1f", light: "#ffe9a8" };
+  }
+  if (value.includes("noisette") || value.includes("praline")) {
+    return { main: "#b07a4f", dark: "#6e4528", light: "#ecd2b6" };
   }
   return { main: "#c39cff", dark: "#7b5bbb", light: "#f2dfff" };
 };
@@ -673,14 +684,15 @@ const ITEM_SIZE: Record<Product["category"], { size: number; base: number }> = {
   Box: { size: 76, base: 74 },
 };
 
-// Emplacements en pyramide sur le napperon : 3 en bas, 2 au-dessus.
-const SLOTS = [
-  { x: 0, y: 0 },
-  { x: -1, y: 0 },
-  { x: 1, y: 0 },
-  { x: -0.5, y: 1 },
-  { x: 0.5, y: 1 },
-];
+// Emplacements en pyramide sur le napperon : 3 en bas, 2 au-dessus,
+// chaque rangée centrée quel que soit le nombre d'articles.
+const MAX_ON_STAND = 5;
+const slotFor = (index: number, count: number) => {
+  const bottom = Math.min(count, 3);
+  if (index < 3) return { x: index - (bottom - 1) / 2, y: 0 };
+  const top = count - 3;
+  return { x: index - 3 - (top - 1) / 2, y: 1 };
+};
 
 const MAX_VISIBLE_BOXES = 3;
 
@@ -718,12 +730,15 @@ export function Dynamic3DPreview({
     pack === 0 ? 0 : pack === 1 ? safeQty : Math.floor(safeQty / pack);
   const loose =
     pack === 0
-      ? Math.min(safeQty, SLOTS.length)
+      ? Math.min(safeQty, MAX_ON_STAND)
       : pack === 1
         ? 0
         : safeQty % pack;
   const overflow = safeQty - loose - boxes * Math.max(pack, 0);
-  const { size, base } = ITEM_SIZE[category];
+  const { size: baseSize, base } = ITEM_SIZE[category];
+  // Gâteaux : plus grands quand il y en a peu sur le présentoir.
+  const size =
+    pack === 0 ? (loose <= 1 ? 130 : loose <= 2 ? 115 : baseSize) : baseSize;
 
   // Quand une boîte se remplit, les articles en vrac s'envolent dedans.
   const [previousBoxes, setPreviousBoxes] = useState(boxes);
@@ -850,10 +865,11 @@ export function Dynamic3DPreview({
                 </AnimatePresence>
                 <AnimatePresence custom={packing} initial={false}>
                   {Array.from({ length: loose }).map((_, index) => {
-                    const slot = SLOTS[index];
+                    const slot = slotFor(index, loose);
                     return (
                       <motion.div
                         key={`item-${index}`}
+                        layout
                         custom={packing}
                         variants={itemVariants}
                         initial={reduce ? false : "hidden"}
@@ -990,6 +1006,247 @@ export function FormulaBox3DPreview({ rows }: { rows: FormulaRow[] }) {
       <p className="mt-3 text-sm font-bold text-cacao">
         {activeRows.reduce((sum, row) => sum + row.qty, 0)} pièce(s) dans la box
       </p>
+    </div>
+  );
+}
+
+/* ---------------- Box : composition et boîte ouverte ---------------- */
+
+// Exemples de composition des box (6 cookies), selon la fournée.
+const BOX_MIXES: Record<string, string[]> = {
+  "mix chocolat": [
+    "Triple chocolat",
+    "Caramel beurre salé",
+    "Triple chocolat",
+    "Vanille pépites",
+    "Triple chocolat",
+    "Caramel beurre salé",
+  ],
+  "mix fruits secs": [
+    "Pistache",
+    "Caramel noix de pécan",
+    "Vanille noisette",
+    "Pistache",
+    "Caramel noix de pécan",
+    "Vanille noisette",
+  ],
+  "mix surprise": [
+    "Fraise",
+    "Triple chocolat",
+    "Pistache",
+    "Caramel beurre salé",
+    "Vanille pépites",
+    "Recette surprise",
+  ],
+};
+
+export const getBoxMix = (flavor: string) =>
+  BOX_MIXES[normalizeFlavor(flavor)] ?? BOX_MIXES["mix surprise"];
+
+/** Composition regroupée : [["Triple chocolat", 3], …]. */
+export const getBoxRecipes = (flavor: string) => {
+  const counts = new Map<string, number>();
+  getBoxMix(flavor).forEach((name) =>
+    counts.set(name, (counts.get(name) ?? 0) + 1),
+  );
+  return Array.from(counts.entries());
+};
+
+/** Pastille de couleur d'un parfum (dégradé multicolore pour les mix). */
+export const getFlavorSwatch = (product: Product, flavor: string) => {
+  if (product.category === "Box") {
+    const colors = getBoxMix(flavor).map((name) => getFlavorPalette(name).main);
+    const step = 100 / colors.length;
+    return `conic-gradient(${colors
+      .map((color, index) => `${color} ${index * step}% ${(index + 1) * step}%`)
+      .join(", ")})`;
+  }
+  const palette = getFlavorPalette(flavor);
+  return `radial-gradient(circle at 35% 30%, ${palette.light}, ${palette.main} 55%, ${palette.dark})`;
+};
+
+const stripes = (light: string) =>
+  `repeating-linear-gradient(90deg, #fffaf7 0 14px, ${light} 14px 28px)`;
+
+// Emplacements des 6 cookies : rangée du fond puis rangée de devant.
+const BOX_SLOTS = [
+  { left: 52, bottom: 104, scale: 0.86 },
+  { left: 115, bottom: 108, scale: 0.86 },
+  { left: 178, bottom: 104, scale: 0.86 },
+  { left: 36, bottom: 62, scale: 1 },
+  { left: 115, bottom: 58, scale: 1 },
+  { left: 194, bottom: 62, scale: 1 },
+];
+
+/** Boîte ouverte : le couvercle se soulève et les 6 cookies du mix tombent dedans. */
+export function OpenBoxPreview({
+  flavor,
+  qty,
+}: {
+  flavor: string;
+  qty: number;
+}) {
+  const reduce = useReducedMotion();
+  const mix = getBoxMix(flavor);
+  const palette = getFlavorPalette(mix[0]);
+  const size = 70;
+
+  return (
+    <div className="qty-stage">
+      <div className="relative mx-auto h-[16.5rem] w-[300px] max-sm:scale-[0.86]">
+        {/* Couvercle ouvert, derrière */}
+        <motion.div
+          key={`lid-${flavor}`}
+          className="absolute left-0 h-[86px] w-[300px] origin-bottom"
+          style={{ bottom: 152 }}
+          initial={reduce ? false : { y: 70, scaleY: 0.15, rotate: 0 }}
+          animate={{ y: 0, scaleY: 1, rotate: -5 }}
+          transition={{ type: "spring", stiffness: 220, damping: 14 }}
+        >
+          <div
+            className="absolute inset-0 rounded-t-2xl shadow-[0_-6px_18px_-10px_rgba(59,29,23,.4)]"
+            style={{
+              background: stripes(palette.light),
+              clipPath: "polygon(7% 0, 93% 0, 100% 100%, 0 100%)",
+            }}
+          />
+          <span className="absolute inset-y-0 left-1/2 w-3 -translate-x-1/2 bg-framboise" />
+          <span className="font-display absolute top-6 left-1/2 -translate-x-1/2 rounded-full bg-white px-3 py-0.5 text-sm text-framboise shadow">
+            Patsam
+          </span>
+        </motion.div>
+
+        {/* Fond intérieur */}
+        <div
+          className="absolute left-[6px] h-[76px] w-[288px] rounded-t-lg"
+          style={{ bottom: 86, background: palette.dark, opacity: 0.85 }}
+        />
+        <div
+          className="absolute left-[6px] h-[30px] w-[288px]"
+          style={{
+            bottom: 86,
+            background: `linear-gradient(to top, ${palette.dark}, transparent)`,
+            opacity: 0.6,
+          }}
+        />
+
+        {/* Cookies */}
+        <AnimatePresence initial={false} mode="popLayout">
+          {mix.map((name, index) => {
+            const slot = BOX_SLOTS[index];
+            return (
+              <motion.div
+                key={`${flavor}-${index}`}
+                className="absolute"
+                style={{
+                  left: slot.left,
+                  bottom: slot.bottom,
+                  width: size,
+                  height: size,
+                  zIndex: index < 3 ? 1 : 3,
+                }}
+                initial={reduce ? false : { y: -190, opacity: 0, rotate: -40 }}
+                animate={{ y: 0, opacity: 1, rotate: 0 }}
+                exit={{
+                  y: -120,
+                  opacity: 0,
+                  scale: 0.6,
+                  transition: { duration: 0.25 },
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 380,
+                  damping: 15,
+                  delay: 0.25 + index * 0.08,
+                }}
+              >
+                <div
+                  className="qty-item"
+                  style={{
+                    transform: `scale(${(size / 74) * slot.scale})`,
+                    transformOrigin: "top left",
+                  }}
+                >
+                  <ThreeDItem category="Cookies" flavor={name} index={index} />
+                </div>
+                {name === "Recette surprise" && (
+                  <span className="font-display absolute -top-2 -right-1 grid h-7 w-7 place-items-center rounded-full bg-mangue text-base text-ganache shadow">
+                    ?
+                  </span>
+                )}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+
+        {/* Face avant de la boîte */}
+        <div
+          className="absolute bottom-0 left-0 z-[4] flex h-[96px] w-[300px] items-center justify-center rounded-b-2xl shadow-[0_14px_24px_-14px_rgba(59,29,23,.5)]"
+          style={{ background: stripes(palette.light) }}
+        >
+          <span
+            className="absolute inset-x-0 top-0 h-2 rounded-t-sm"
+            style={{ background: palette.main }}
+          />
+          <span className="absolute inset-y-0 left-1/2 w-3 -translate-x-1/2 bg-framboise" />
+          <span className="relative rounded-full bg-white px-3 py-1 text-xs font-extrabold text-ganache shadow">
+            6 cookies maison
+          </span>
+        </div>
+        <span
+          className="absolute -bottom-3 left-1/2 h-4 w-[86%] -translate-x-1/2 rounded-[50%]"
+          style={{
+            background:
+              "radial-gradient(ellipse, rgba(59,29,23,.25), transparent 70%)",
+          }}
+        />
+
+        <AnimatePresence>
+          {qty > 1 && (
+            <motion.span
+              key={qty}
+              initial={{ scale: 1.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 500, damping: 18 }}
+              className="absolute top-2 -right-3 z-10 rounded-full bg-framboise px-3 py-1 text-sm font-extrabold text-white shadow-lg"
+            >
+              ×{qty} boîtes
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="mt-5">
+        <p className="text-sm font-semibold text-cacao">Dans la boîte</p>
+        <ul className="mt-2 flex flex-wrap gap-1.5">
+          <AnimatePresence mode="popLayout" initial={false}>
+            {getBoxRecipes(flavor).map(([name, count], index) => (
+              <motion.li
+                key={`${flavor}-${name}`}
+                layout
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ delay: 0.3 + index * 0.06 }}
+                className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-ganache shadow-[inset_0_0_0_1px_var(--line)]"
+              >
+                <span
+                  aria-hidden="true"
+                  className="h-3 w-3 rounded-full"
+                  style={{ background: getFlavorPalette(name).main }}
+                />
+                {count > 1 && (
+                  <span className="font-extrabold text-framboise">
+                    {count}×
+                  </span>
+                )}
+                {name}
+              </motion.li>
+            ))}
+          </AnimatePresence>
+        </ul>
+      </div>
     </div>
   );
 }

@@ -7,26 +7,16 @@ import {
   Suspense,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
+import { easeOut, Reveal, SplitWords, TiltCard } from "@/components/fx";
+import { sprinkleBurst } from "@/lib/sprinkles";
+import { ProductSheet } from "@/components/product-sheet";
 import {
-  easeOut,
-  Magnetic,
-  Reveal,
-  SplitWords,
-  TiltCard,
-} from "@/components/fx";
-import { flyToCart, sprinkleBurst } from "@/lib/sprinkles";
-import { QtyStepper } from "@/components/qty-stepper";
-import {
-  Dynamic3DPreview,
-  getPackSize,
   FormulaBox3DPreview,
   FormulaRow,
-  getPreviewOverlay,
   ProductBox3D,
 } from "@/components/product-preview";
 import Link from "next/link";
@@ -55,10 +45,6 @@ function CommanderPageContent() {
   const [modalProductId, setModalProductId] = useState<string | null>(
     requestedProductFromUrl?.id ?? null,
   );
-  const [modalFlavor, setModalFlavor] = useState<string>(
-    requestedProductFromUrl?.flavors[0] ?? "",
-  );
-  const [modalQty, setModalQty] = useState<number>(1);
   const [formulaRows, setFormulaRows] = useState<FormulaRow[]>([
     { productId: "cookie-triple-choco", flavor: "Fraise", qty: 2 },
     {
@@ -87,20 +73,15 @@ function CommanderPageContent() {
     [modalProductId],
   );
 
+  // La fiche produit gère sa propre touche Échap ; ici, la box à composer.
   useEffect(() => {
-    if (!modalOpen && !formulaModalOpen) return;
+    if (!formulaModalOpen) return;
     const onEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        if (modalOpen) {
-          setModalOpen(false);
-        } else {
-          setFormulaModalOpen(false);
-        }
-      }
+      if (event.key === "Escape") setFormulaModalOpen(false);
     };
     window.addEventListener("keydown", onEscape);
     return () => window.removeEventListener("keydown", onEscape);
-  }, [modalOpen, formulaModalOpen]);
+  }, [formulaModalOpen]);
 
   const cartItems = useMemo(() => {
     return entries
@@ -203,27 +184,9 @@ function CommanderPageContent() {
 
   const openConfigModal = (product: Product) => {
     setModalProductId(product.id);
-    setModalFlavor(product.flavors[0] ?? "Classique");
-    setModalQty(1);
     setModalOpen(true);
   };
 
-  const confirmModalSelection = (event: MouseEvent<HTMLButtonElement>) => {
-    if (!selectedProduct) return;
-    sprinkleBurst(event.clientX, event.clientY);
-    flyToCart(
-      previewRef.current?.getBoundingClientRect() ??
-        event.currentTarget.getBoundingClientRect(),
-      selectedProduct.image,
-    );
-    const productId = selectedProduct.id;
-    const flavor = modalFlavor || selectedProduct.flavors[0] || "Classique";
-    const qty = Math.max(1, Math.min(30, modalQty));
-    addItem({ productId, flavor, qty });
-    setModalOpen(false);
-  };
-
-  const previewRef = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
 
   const decreaseCartQty = (key: string) => {
@@ -711,147 +674,12 @@ function CommanderPageContent() {
 
       <AnimatePresence>
         {modalOpen && selectedProduct && (
-          <motion.div
-            key="config"
-            className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-ganache/55 p-3 backdrop-blur-[3px] sm:items-center sm:p-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setModalOpen(false)}
-          >
-            <motion.div
-              initial={reduce ? false : { opacity: 0, y: 60, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 40, scale: 0.97 }}
-              transition={{ type: "spring", stiffness: 260, damping: 26 }}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="config-dialog-title"
-              className="grid max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl grid-cols-1 overflow-y-auto rounded-[2rem] bg-chantilly lg:max-h-[calc(100dvh-3rem)] lg:grid-cols-2 lg:overflow-hidden"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="p-6 sm:p-8 lg:overflow-y-auto">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <span className="chip chip-framboise">
-                      {selectedProduct.category}
-                    </span>
-                    <h2 id="config-dialog-title" className="display-md mt-3">
-                      {selectedProduct.name}
-                    </h2>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setModalOpen(false)}
-                    className="btn btn-soft btn-round max-lg:hidden"
-                    aria-label="Fermer"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <p className="mt-2 text-cacao">{selectedProduct.description}</p>
-
-                <fieldset className="mt-6">
-                  <legend className="field-label">Parfum</legend>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {selectedProduct.flavors.map((flavor) => (
-                      <button
-                        key={flavor}
-                        type="button"
-                        className={`relative isolate rounded-full px-4 py-2 text-[0.95rem] font-bold shadow-[inset_0_0_0_1.5px_var(--line)] transition-colors duration-300 ${
-                          modalFlavor === flavor
-                            ? "text-chantilly"
-                            : "text-ganache hover:shadow-[inset_0_0_0_1.5px_var(--ganache)]"
-                        }`}
-                        aria-pressed={modalFlavor === flavor}
-                        onClick={() => setModalFlavor(flavor)}
-                      >
-                        {modalFlavor === flavor && (
-                          <motion.span
-                            layoutId="flavor-pill"
-                            className="absolute inset-0 -z-10 rounded-full bg-ganache"
-                            transition={{
-                              type: "spring",
-                              stiffness: 420,
-                              damping: 30,
-                            }}
-                          />
-                        )}
-                        {flavor}
-                      </button>
-                    ))}
-                  </div>
-                </fieldset>
-
-                {/* Sur mobile : barre collée en bas pour voir le présentoir en ajoutant */}
-                <div className="max-lg:sticky max-lg:bottom-0 max-lg:z-20 max-lg:-mx-6 max-lg:-mb-6 max-lg:mt-6 max-lg:bg-chantilly max-lg:px-6 max-lg:pt-4 max-lg:pb-5 max-lg:shadow-[0_-14px_24px_-18px_rgba(59,29,23,.5)] sm:max-lg:-mx-8 sm:max-lg:-mb-8 sm:max-lg:px-8">
-                  <div className="mt-6 max-lg:mt-0">
-                    <p className="field-label max-lg:sr-only" id="qty-label">
-                      Quantité
-                    </p>
-                    <div className="mt-2 max-lg:mt-0">
-                      <QtyStepper
-                        value={modalQty}
-                        onChange={setModalQty}
-                        packSize={getPackSize(selectedProduct.category)}
-                        quickPicksClassName="max-lg:hidden"
-                        labelId="qty-label"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-8 flex items-center justify-between gap-4 border-t-2 border-ganache pt-5 max-lg:mt-3 max-lg:border-t-0 max-lg:pt-0">
-                    <div>
-                      <p className="text-sm text-cacao max-lg:hidden">
-                        {modalQty} × {modalFlavor}
-                      </p>
-                      <motion.p
-                        key={modalQty}
-                        initial={reduce ? false : { y: -10, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        className="text-2xl font-extrabold tabular-nums"
-                      >
-                        {formatPrice(selectedProduct.price * modalQty)}
-                      </motion.p>
-                    </div>
-                    <Magnetic>
-                      <button
-                        type="button"
-                        onClick={confirmModalSelection}
-                        className="btn btn-primary shine"
-                      >
-                        Ajouter au panier
-                      </button>
-                    </Magnetic>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                ref={previewRef}
-                className={`relative order-first flex flex-col justify-center bg-gradient-to-br p-5 sm:p-8 lg:order-none ${getPreviewOverlay(selectedProduct.category)}`}
-              >
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="btn btn-soft btn-round absolute top-4 right-4 z-20 lg:hidden"
-                  aria-label="Fermer"
-                >
-                  ×
-                </button>
-                <p className="text-sm font-semibold text-cacao">
-                  Aperçu en direct
-                </p>
-                <p className="display-md mt-1 mb-4">{modalFlavor}</p>
-                <Dynamic3DPreview
-                  product={selectedProduct}
-                  flavor={modalFlavor}
-                  qty={modalQty}
-                />
-              </div>
-            </motion.div>
-          </motion.div>
+          <ProductSheet
+            key={selectedProduct.id}
+            product={selectedProduct}
+            onClose={() => setModalOpen(false)}
+            initialView="stand"
+          />
         )}
       </AnimatePresence>
     </div>
